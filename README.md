@@ -87,6 +87,17 @@ cp .env.example .env
 npm run dev
 ```
 
+If you want to run the apps directly, use `Frontend/` for the UI and `Backend/` for the API:
+
+```bash
+cd Frontend
+npm run dev
+
+# in a second terminal
+cd Backend
+npm run dev
+```
+
 ## 👨‍💻 Team
 
 Thanks to our amazing team:

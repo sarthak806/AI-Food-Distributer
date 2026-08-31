@@ -76,7 +76,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
               Fight Hunger with <span className="text-green-600">SharePlate</span>
             </h1>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold mt-4 text-green-600 font-sans">
-              From <span className="text-gray-900">Hungree</span> to{" "}
+              From <span className="text-gray-900">Hungry</span> to{" "}
               <span className="text-gray-900">Hunger-Free</span>
             </h2>
             <p className="text-lg sm:text-xl mt-6 text-gray-700 leading-relaxed max-w-2xl mx-auto lg:mx-0">

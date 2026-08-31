@@ -14,6 +14,8 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
   const { user, isLogin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
+  const dashboardUrl = `/user/${user?.role || 'Donar'}`;
+
   return (
     <header className={cn('sticky top-0 left-0 shadow-md bg-white z-50', className)}>
       <nav className='px-6 md:px-10 lg:px-20 py-4 flex justify-between items-center border-b border-gray-200'>
@@ -35,9 +37,13 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
               </Button>
             </Link>
           ) : (
-            <Link to='/user/NGO'>
+            <Link to={dashboardUrl}>
               <div className='flex items-center gap-2'>
-                <img src={user.profileImage} alt='user' className='w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full border-2 border-gray-300' />
+                <img 
+                  src={user?.profileImage || `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(user?.name || 'User')}`} 
+                  alt='user' 
+                  className='w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full border-2 border-gray-300 object-cover' 
+                />
               </div>
             </Link>
           )}
@@ -61,9 +67,14 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                   </Button>
                 </Link>
               ) : (
-                <Link to='/user/NGO' onClick={() => setIsOpen(false)}>
+                <Link to={dashboardUrl} onClick={() => setIsOpen(false)}>
                   <div className='mt-4 flex items-center gap-2'>
-                    <img src={user.profileImage} alt='user' className='w-[40px] h-[40px] rounded-full border-2 border-gray-300' />
+                    <img 
+                      src={user?.profileImage || `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(user?.name || 'User')}`} 
+                      alt='user' 
+                      className='w-[40px] h-[40px] rounded-full border-2 border-gray-300 object-cover' 
+                    />
+                    <span className="font-medium text-gray-800">{user?.name || 'My Dashboard'}</span>
                   </div>
                 </Link>
               )}

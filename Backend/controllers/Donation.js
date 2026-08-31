@@ -258,6 +258,9 @@ const createDonation = async (req, res) => {
   try {
     console.log("[createDonation] Received donation creation request");
     
+    const images = Array.isArray(req.body.images) ? req.body.images : (req.body.imageUrl ? [req.body.imageUrl] : []);
+    const primaryImageUrl = req.body.imageUrl || images[0] || '';
+
     // Create a new donation using the mongoose model
     const donation = new Donation({
       donor: req.body.donor,
@@ -265,9 +268,10 @@ const createDonation = async (req, res) => {
       quantity: req.body.quantity,
       expirationDate: req.body.expirationDate,
       pickupLocation: req.body.pickupLocation,
-      name:req.body.name,
-      description: req.body.description, // New field
-      imageUrl: req.body.imageUrl
+      name: req.body.name,
+      description: req.body.description,
+      imageUrl: primaryImageUrl,
+      images: images,
     });
     
     // Save the donation

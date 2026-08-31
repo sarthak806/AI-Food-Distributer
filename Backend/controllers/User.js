@@ -1,39 +1,48 @@
 const User = require('../models/User');
 
+const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
 
-const  getUser = async (req, res) => {
-    try {
-      // console.log("Request Received", req.user.email, req.user.id)
-
-      const user = await User.findById(req.user.id);
-
-      console.log(user);
-      if (!user) return res.status(404).json({ message: "User not found" });
-  
-      res.status(200).json({
-        success:true,
-        message:"User verification successful!",
-        user:user
-      });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
-    catch(error){
-      // console.error(error.message);
-      res.status(500).json({
-        success: false,
-        message: "User not Found"
-      });
-    } 
-}
 
-const  logOut = async (req, res) => {
-  console.log("Logout");
+    res.status(200).json({
+      success: true,
+      message: "User verification successful!",
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage,
+        location: user.location,
+        phone: user.phone,
+        about: user.about,
+        registrationNumber: user.registrationNumber,
+        isVerified: user.isVerified
+      }
+    });
+  }
+  catch(error){
+    console.error("getUser error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching user data"
+    });
+  } 
+};
+
+const logOut = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "Strict",
+    sameSite: "lax",
   });
 
   res.status(200).json({ success: true, message: "Logged out successfully!" });
-}
+};
 
 const userProfileUpdate = async (req, res) => {
   console.log("Request Body:", req.body);

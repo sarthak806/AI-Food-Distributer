@@ -2,7 +2,6 @@
 import { Link } from "react-router-dom";
 import {
   User,
-  UserPlus,
   Star,
   CircleHelp,
   ChevronsUpDown,
@@ -33,6 +32,13 @@ export function NavUser() {
   const { isMobile } = useSidebar();
   const { user, logout } = useAuth();
 
+  if (!user) {
+    return null;
+  }
+
+  const profileImg = user.profileImage || `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
+  const initials = (user.name || 'U').substring(0, 2).toUpperCase();
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -43,8 +49,8 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.profileImage} alt={user.name} />
-                <AvatarFallback className="rounded-lg"></AvatarFallback>
+                <AvatarImage src={profileImg} alt={user.name} />
+                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
@@ -62,10 +68,10 @@ export function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.profileImage} alt={user.name} />
-                <AvatarFallback className="rounded-lg">AC</AvatarFallback>
-              </Avatar>
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={profileImg} alt={user.name} />
+                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
                   <span className="truncate text-xs">{user.email}</span>
@@ -76,33 +82,25 @@ export function NavUser() {
             <DropdownMenuSeparator />
 
             <DropdownMenuGroup>
-              <Link to={`id/${user.email}`}>
+              <Link to={`id/${user.email || user._id}`}>
                 <DropdownMenuItem>
-                  <User />
+                  <User className="mr-2 h-4 w-4" />
                   My Profile
                 </DropdownMenuItem>
               </Link>
 
-              {/* <Link to="connections">
-                <DropdownMenuItem>
-                  <UserPlus />
-                  Connections
-                </DropdownMenuItem>
-              </Link> */}
-
-              {
-                user.role==="Donar" && 
+              {user.role === "Donar" && (
                 <Link to={`/user/${user.role}/reviews`}>
-                <DropdownMenuItem>
-                  <Star />
-                  Reviews
-                </DropdownMenuItem>
-              </Link>
-              }
+                  <DropdownMenuItem>
+                    <Star className="mr-2 h-4 w-4" />
+                    Reviews
+                  </DropdownMenuItem>
+                </Link>
+              )}
 
               <Link to={`/user/${user.role}/contact`}>
                 <DropdownMenuItem>
-                  <CircleHelp />
+                  <CircleHelp className="mr-2 h-4 w-4" />
                   Help
                 </DropdownMenuItem>
               </Link>
@@ -111,7 +109,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
 
             <DropdownMenuItem onClick={logout}>
-              <LogOut />
+              <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

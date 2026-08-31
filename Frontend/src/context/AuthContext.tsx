@@ -1,68 +1,78 @@
-import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
+import React, { createContext, useState, useCallback, ReactNode, useContext } from "react";
 import axios from "axios";
+
+// Configure default axios behavior for auth
+axios.defaults.withCredentials = true;
+
+// Add global axios interceptor to attach JWT token if present in localStorage
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  config.withCredentials = true;
+  return config;
+});
 
 // Define the context type
 interface AuthContextType {
   user: any;
   isLogin: boolean;
   setUser: (user: any) => void;
-  fetchUserData: () => Promise<void>;
-  logout: () => void;
+  fetchUserData: () => Promise<any>;
+  logout: () => Promise<void>;
 }
 
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider Component
-const AuthContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
-  const [isLogin, setIsLogin] = useState<boolean>(false);
+  const [isLogin, setIsLogin] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem("token"));
+  });
 
-  async function fetchUserData() {
-    console.log("Fetching User Data...");
-    
-    try{
+  const fetchUserData = useCallback(async () => {
+    try {
       const response = await axios.get(
         `${import.meta.env.VITE_Backend_URL}/user/getUser`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
-  
-      if (response.data) {
+
+      if (response.data && response.data.success && response.data.user) {
         setUser(response.data.user);
         setIsLogin(true);
-      } 
-      else {
-        throw new Error("No user data returned");
+        return response.data.user;
+      } else {
+        setUser(null);
+        setIsLogin(false);
+        localStorage.removeItem("token");
+        return null;
       }
-    } 
-    catch (error) {
-      console.error("Error fetching user:", error);
-      setIsLogin(false);
+    } catch (error) {
       setUser(null);
+      setIsLogin(false);
+      localStorage.removeItem("token");
+      return null;
     }
-  }
-  
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
-      console.log("Logging Out!!");
-  
-      // Call backend to clear the authentication cookie
-      await axios.post(`${import.meta.env.VITE_Backend_URL}/user/logout`, {}, {
-        withCredentials: true,
-      });
-  
-      // Clear user state in frontend
+      await axios.post(
+        `${import.meta.env.VITE_Backend_URL}/user/logout`,
+        {},
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error("Logout Error:", error);
+    } finally {
+      localStorage.removeItem("token");
       setUser(null);
       setIsLogin(false);
-    } 
-    catch (error) {
-      console.error("Logout Error:", error);
     }
-  };
-  
+  }, []);
 
   // Context value
   const value: AuthContextType = {
@@ -84,6 +94,5 @@ export const useAuth = () => {
   }
   return context;
 };
-
 
 export default AuthContextProvider;

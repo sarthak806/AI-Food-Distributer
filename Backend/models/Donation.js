@@ -13,6 +13,7 @@ const donationSchema = new mongoose.Schema({
   },
   description: { type: String }, // Add description field
   imageUrl: { type: String },
+  images: [{ type: String }],
   donor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   //store the reciver id also but not required
   receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

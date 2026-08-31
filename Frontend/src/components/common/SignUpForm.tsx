@@ -3,12 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Clock } from "lucide-react";
+import { Eye, EyeOff, Clock, Loader2 } from "lucide-react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import AnimatedInput from "@/Animations/FormDiv";
 import { useSnackbar } from 'notistack';
-import { Link } from 'react-router-dom';
 
 // Auth context
 import { useAuth } from "@/context/AuthContext";
@@ -26,7 +25,7 @@ export default function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"form">) {
-  const { user, fetchUserData } = useAuth();
+  const { user, setUser, fetchUserData } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +33,8 @@ export default function SignUpForm({
 
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
+  const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const navigate = useNavigate();
 
   // Timer state
@@ -60,12 +61,11 @@ export default function SignUpForm({
       interval = window.setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
-      // Redirect to login page when timer expires
-      enqueueSnackbar("OTP has expired. Please try again.", { 
+    } else if (timeLeft === 0 && timerActive) {
+      setTimerActive(false);
+      enqueueSnackbar("OTP has expired. Please request a new OTP.", { 
         variant: 'error',
       });
-      navigate("/user/login");
     }
     
     return () => {
@@ -73,7 +73,7 @@ export default function SignUpForm({
         clearInterval(interval);
       }
     };
-  }, [timerActive, timeLeft, navigate, enqueueSnackbar]);
+  }, [timerActive, timeLeft, enqueueSnackbar]);
 
   // Format time to MM:SS
   const formatTime = (seconds: number): string => {
@@ -84,29 +84,12 @@ export default function SignUpForm({
 
   // Password validation rules
   const validatePassword = (password: string): boolean => {
-    const minLength = 8; // Minimum password length
-    const hasUppercase = /[A-Z]/.test(password); // Check for at least one uppercase letter
-    const hasNumber = /[0-9]/.test(password); // Check for at least one number
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password); // Check for at least one special character
-
+    const minLength = 6;
     if (password.length < minLength) {
-      setPasswordErrorMessage("Password must be at least 8 characters long.");
+      setPasswordErrorMessage("Password must be at least 6 characters long.");
       return false;
     }
-    if (!hasUppercase) {
-      setPasswordErrorMessage("Password must contain at least one uppercase letter.");
-      return false;
-    }
-    if (!hasNumber) {
-      setPasswordErrorMessage("Password must contain at least one number.");
-      return false;
-    }
-    if (!hasSpecialChar) {
-      setPasswordErrorMessage("Password must contain at least one special character.");
-      return false;
-    }
-
-    setPasswordErrorMessage(""); // Clear error message if password is valid
+    setPasswordErrorMessage("");
     return true;
   };
 
@@ -134,7 +117,6 @@ export default function SignUpForm({
       [name]: value,
     }));
 
-    // Validate password in real-time
     if (name === "password") {
       setIsPasswordValid(validatePassword(value));
     }
@@ -143,7 +125,11 @@ export default function SignUpForm({
   const sendOtpHandler = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    // Basic validation
+    if (!userData.name.trim() || !userData.email.trim() || !userData.password) {
+      enqueueSnackbar("Please fill in all required fields.", { variant: 'warning' });
+      return;
+    }
+
     if (userData.password !== userData.confirmPassword) {
       enqueueSnackbar("Passwords do not match", { 
         variant: 'error',
@@ -151,74 +137,101 @@ export default function SignUpForm({
       return;
     }
 
-    // Validate password before sending OTP
     if (!validatePassword(userData.password)) {
-      enqueueSnackbar(passwordErrorMessage, { 
+      enqueueSnackbar(passwordErrorMessage || "Password does not meet requirements", { 
         variant: 'error',
       });
       return;
     }
     
-    if (userData.role === "NGO" && !userData.registrationNumber) {
+    if (userData.role === "NGO" && !userData.registrationNumber?.trim()) {
       enqueueSnackbar("Registration number is required for NGO accounts", { 
         variant: 'warning',
       });
       return;
     }
     
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_Backend_URL}/api/auth/send-otp`, userData);
+    setLoading(true);
 
-      console.log(res.data);
-      setOtpSent(true); // Hide form and show OTP input
-      setTimerActive(true); // Start the timer
-      
-      enqueueSnackbar("OTP sent to your email! Please check your inbox.", { 
-        variant: 'success',
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_Backend_URL}/api/auth/send-otp`, {
+        ...userData,
+        email: userData.email.trim(),
+        name: userData.name.trim(),
       });
-    } catch (error) {
-      console.error("OTP send error:", (error as Error).message);
-      enqueueSnackbar("Failed to send OTP. Please check your details and try again.", { 
-        variant: 'error',
-      });
+
+      if (res.data && res.data.success) {
+        setOtpSent(true);
+        setTimeLeft(600);
+        setTimerActive(true);
+        setOtp(new Array(6).fill(""));
+        enqueueSnackbar("OTP sent to your email! Please check your inbox.", { 
+          variant: 'success',
+        });
+      } else {
+        enqueueSnackbar(res.data?.message || "Failed to send OTP", { variant: 'error' });
+      }
+    } catch (error: any) {
+      console.error("OTP send error:", error);
+      const errMsg = error.response?.data?.message || "Failed to send OTP. Please check your details.";
+      enqueueSnackbar(errMsg, { variant: 'error' });
+    } finally {
+      setLoading(false);
     }
   };
 
   const verifyOtpHandler = async () => {
-    const enteredOtp = otp.join("");
-    console.log("Entered OTP:", enteredOtp);
+    const enteredOtp = otp.join("").trim();
     
     if (enteredOtp.length !== 6) {
-      enqueueSnackbar("Please enter a valid 6-digit OTP", { 
+      enqueueSnackbar("Please enter a valid 6-character OTP", { 
         variant: 'warning',
       });
       return;
     }
 
+    setVerifying(true);
+
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_Backend_URL}/api/auth/verify-otp`,
-        { userData, otp: enteredOtp },
+        { 
+          userData: {
+            ...userData,
+            email: userData.email.trim(),
+            name: userData.name.trim(),
+          }, 
+          otp: enteredOtp 
+        },
         { withCredentials: true }
       );
       
-      console.log("OTP verified:", response.data);
-
-      if (response.data.success) {
-        fetchUserData();
+      if (response.data && response.data.success) {
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+        }
+        if (response.data.user) {
+          setUser(response.data.user);
+        }
         enqueueSnackbar("Registration Successful!", { 
           variant: 'success',
         });
+        await fetchUserData();
+        const targetRole = response.data.user?.role || userData.role || "Donar";
+        navigate(`/user/${targetRole}`);
       } else {
-        enqueueSnackbar(response.data.message, { 
+        enqueueSnackbar(response.data?.message || "Failed to verify OTP", { 
           variant: 'error',
         });
       }
-    } catch (error) {
-      console.error("OTP verification error:", (error as Error).message);
-      enqueueSnackbar("Failed to verify OTP. Please try again or request a new OTP.", { 
+    } catch (error: any) {
+      console.error("OTP verification error:", error);
+      const errMsg = error.response?.data?.message || "Failed to verify OTP. Please try again.";
+      enqueueSnackbar(errMsg, { 
         variant: 'error',
       });
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -226,11 +239,10 @@ export default function SignUpForm({
     if (user?.role) {
       navigate(`/user/${user.role}`);
     }
-  }, [user]);
+  }, [user, navigate]);
 
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props} onSubmit={sendOtpHandler}>
-      {/* Form content remains the same */}
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Sign Up to your account</h1>
         <p className="text-sm text-muted-foreground">
@@ -244,14 +256,14 @@ export default function SignUpForm({
           {/* Timer Display */}
           <div className="flex items-center justify-center gap-2 py-2">
             <Clock className="text-muted-foreground" size={18} />
-            <div className={`text-center font-mono text-lg ${timeLeft < 60 ? 'text-red-500' : 'text-muted-foreground'}`}>
+            <div className={`text-center font-mono text-lg ${timeLeft < 60 ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
               {formatTime(timeLeft)}
             </div>
           </div>
 
           <div className="py-2 grid gap-5">
-            <Label>
-              Enter OTP<sup className="text-[red]">*</sup>
+            <Label className="text-center">
+              Enter 6-character OTP sent to {userData.email}<sup className="text-[red]">*</sup>
             </Label>
             <div className="flex justify-center gap-2">
               {otp.map((digit, index) => (
@@ -263,14 +275,34 @@ export default function SignUpForm({
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   maxLength={1}
-                  className="w-12 h-12 text-center text-lg"
+                  disabled={verifying}
+                  className="w-12 h-12 text-center text-lg uppercase font-mono"
                 />
               ))}
             </div>
           </div>
-          <Button type="button" className="w-full" onClick={verifyOtpHandler}>
-            Verify OTP & Register
+
+          <Button type="button" className="w-full" onClick={verifyOtpHandler} disabled={verifying}>
+            {verifying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : "Verify OTP & Register"}
           </Button>
+
+          <div className="flex justify-between items-center text-xs mt-2 text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setOtpSent(false)}
+              className="hover:underline text-blue-500"
+            >
+              ← Edit details
+            </button>
+            <button
+              type="button"
+              onClick={sendOtpHandler}
+              disabled={loading || verifying}
+              className="hover:underline text-blue-500"
+            >
+              {loading ? "Sending..." : "Resend OTP"}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-6">
@@ -278,8 +310,8 @@ export default function SignUpForm({
           <div className="mx-auto flex gap-2 p-1 bg-[#111111] rounded-full max-w-max">
             <Button
               type="button"
-              className={`rounded-full px-3 py-1 hover:bg-[#333] transition-all duration-100 ${
-                userData.role === "Donar" ? "bg-[#444]" : "bg-transparent"
+              className={`rounded-full px-4 py-1 hover:bg-[#333] transition-all duration-100 ${
+                userData.role === "Donar" ? "bg-[#444] text-white" : "bg-transparent text-gray-300"
               }`}
               onClick={() =>
                 setUserData((prev) => ({
@@ -289,12 +321,12 @@ export default function SignUpForm({
                 }))
               }
             >
-              Donar
+              Donor
             </Button>
             <Button
               type="button"
-              className={`rounded-full px-3 py-1 hover:bg-[#333] transition-all duration-100 ${
-                userData.role === "NGO" ? "bg-[#444]" : "bg-transparent"
+              className={`rounded-full px-4 py-1 hover:bg-[#333] transition-all duration-100 ${
+                userData.role === "NGO" ? "bg-[#444] text-white" : "bg-transparent text-gray-300"
               }`}
               onClick={() =>
                 setUserData((prev) => ({
@@ -310,45 +342,51 @@ export default function SignUpForm({
 
           {/* Name */}
           <div className="grid gap-2">
-            <Label>
-              Name<sup className="text-[red]">*</sup>
+            <Label htmlFor="name">
+              Full Name<sup className="text-[red]">*</sup>
             </Label>
             <Input
+              id="name"
               type="text"
               name="name"
               value={userData.name}
               placeholder="John Doe"
               onChange={changeHandler}
+              disabled={loading}
               required
             />
           </div>
 
           {/* Email */}
           <div className="grid gap-2">
-            <Label>
+            <Label htmlFor="signup-email">
               Email<sup className="text-[red]">*</sup>
             </Label>
             <Input
+              id="signup-email"
               type="email"
               name="email"
               value={userData.email}
-              placeholder="John@gmail.com"
+              placeholder="john@example.com"
               onChange={changeHandler}
+              disabled={loading}
               required
             />
           </div>
 
           {/* Password */}
           <div className="grid gap-2">
-            <Label>
+            <Label htmlFor="signup-password">
               Password<sup className="text-red-500">*</sup>
             </Label>
             <div className="relative">
               <Input
+                id="signup-password"
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={userData.password}
                 onChange={changeHandler}
+                disabled={loading}
                 required
                 className="pr-10"
               />
@@ -360,7 +398,6 @@ export default function SignUpForm({
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {/* Display password error message */}
             {!isPasswordValid && (
               <p className="text-sm text-red-500 mt-1">{passwordErrorMessage}</p>
             )}
@@ -368,15 +405,17 @@ export default function SignUpForm({
 
           {/* Confirm Password */}
           <div className="grid gap-2">
-            <Label>
+            <Label htmlFor="signup-confirm-password">
               Confirm Password<sup className="text-red-500">*</sup>
             </Label>
             <div className="relative">
               <Input
+                id="signup-confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 value={userData.confirmPassword}
                 onChange={changeHandler}
+                disabled={loading}
                 required
                 className="pr-10"
               />
@@ -392,21 +431,26 @@ export default function SignUpForm({
 
           {/* Registration Number (Only for NGO) */}
           <AnimatedInput isVisible={userData.role === "NGO"}>
-            <Label>
-              Registration Number<sup className="text-[red]">*</sup>
-            </Label>
-            <Input
-              type="text"
-              name="registrationNumber"
-              value={userData.registrationNumber || ""}
-              onChange={changeHandler}
-              required
-            />
+            <div className="grid gap-2 mt-2">
+              <Label htmlFor="registrationNumber">
+                Registration Number<sup className="text-[red]">*</sup>
+              </Label>
+              <Input
+                id="registrationNumber"
+                type="text"
+                name="registrationNumber"
+                value={userData.registrationNumber || ""}
+                onChange={changeHandler}
+                disabled={loading}
+                placeholder="e.g. NGO-12345-IN"
+                required={userData.role === "NGO"}
+              />
+            </div>
           </AnimatedInput>
 
           {/* Send OTP Button */}
-          <Button type="submit" className="w-full">
-            Send OTP
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending OTP...</> : "Send OTP"}
           </Button>
         </div>
       )}

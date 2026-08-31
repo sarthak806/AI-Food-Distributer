@@ -22,9 +22,19 @@ router.post('/', async (req, res) => {
     
     const { base64Image, folder } = req.body;
     
-    // Log size for debugging
-    const sizeInMB = (base64Image.length * 0.75) / (1024 * 1024);
-    console.log(`Uploading image of size: ${sizeInMB.toFixed(2)}MB to folder: ${folder}`);
+    // Estimate size in bytes
+    const estimatedSizeBytes = (base64Image.length * 0.75);
+    const sizeInMB = estimatedSizeBytes / (1024 * 1024);
+    const MAX_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB in bytes
+
+    if (estimatedSizeBytes > MAX_SIZE_BYTES) {
+      return res.status(400).json({
+        success: false,
+        message: `Image size exceeds the maximum limit of 1GB (Current: ${sizeInMB.toFixed(2)}MB)`
+      });
+    }
+
+    console.log(`Uploading image of size: ${sizeInMB.toFixed(2)}MB (${(sizeInMB / 1024).toFixed(3)}GB) to folder: ${folder}`);
     
     // Upload to R2
     const imageUrl = await uploadImageToR2(base64Image, folder);

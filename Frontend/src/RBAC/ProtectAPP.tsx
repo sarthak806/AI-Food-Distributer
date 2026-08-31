@@ -4,32 +4,40 @@ import { Outlet } from "react-router-dom";
 import Spinner from "@/Animations/Spinner";
 
 const ProtectedApp = () => {
-  const { user, isLogin, fetchUserData } = useAuth();
+  const { fetchUserData } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("On Protect App");
+    let isMounted = true;
+
     const checkAuth = async () => {
-      if (!user && !isLogin) {
+      try {
         await fetchUserData();
+      } catch (e) {
+        // Handled in context
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     };
 
     checkAuth();
-  }, [user, isLogin, fetchUserData]);
 
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchUserData]);
 
-  return <>
-  {
-    loading?
-    <div className='w-full h-screen flex justify-center items-center'>
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
         <Spinner />
-    </div>
-    :
-    <Outlet />
+      </div>
+    );
   }
-  </>
+
+  return <Outlet />;
 };
 
 export default ProtectedApp;
