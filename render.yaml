@@ -3,7 +3,7 @@ services:
     name: shareplate
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && VITE_Backend_URL=$RENDER_EXTERNAL_URL npm run build
     startCommand: npm start
     healthCheckPath: /api/donation/test
     envVars:
