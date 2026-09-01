@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImageToR2 } = require('../utils/imageupload');
+const { uploadImageToCloudinary } = require('../utils/imageupload');
 
 // Route handler with better error handling
 router.post('/', async (req, res) => {
@@ -36,8 +36,8 @@ router.post('/', async (req, res) => {
 
     console.log(`Uploading image of size: ${sizeInMB.toFixed(2)}MB (${(sizeInMB / 1024).toFixed(3)}GB) to folder: ${folder}`);
     
-    // Upload to R2
-    const imageUrl = await uploadImageToR2(base64Image, folder);
+    // Upload to Cloudinary
+    const imageUrl = await uploadImageToCloudinary(base64Image, folder);
     console.log("Upload successful, URL:", imageUrl);
     
     // Success response
