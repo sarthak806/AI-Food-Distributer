@@ -1,3 +1,8 @@
+const buffer = require('buffer');
+if (!buffer.SlowBuffer) {
+  buffer.SlowBuffer = Buffer;
+}
+
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
