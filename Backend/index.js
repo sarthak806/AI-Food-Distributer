@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const path = require('path');
 const connectDB = require('./config/Database');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -10,10 +11,7 @@ const app = express();
 
 // Configure CORS
 const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    process.env.FRONTEND_URL
-  ],
+  origin: ['http://localhost:5173', process.env.FRONTEND_URL].filter(Boolean),
   credentials: true,
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -86,6 +84,19 @@ app.get('/api/cors-test', (req, res) => {
     origin: req.headers.origin || 'No origin header',
     method: req.method
   });
+});
+
+// In production, the API serves the Vite frontend so SharePlate can run as
+// one web service (for example, on Render).
+const frontendDistPath = path.join(__dirname, '..', 'Frontend', 'dist');
+app.use(express.static(frontendDistPath));
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/user/') || req.path.startsWith('/feedback/')) {
+    return next();
+  }
+
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 // Start the server
