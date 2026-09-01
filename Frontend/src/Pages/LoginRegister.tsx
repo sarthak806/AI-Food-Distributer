@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area"
 import loginImage from '../assets/form/login.jpg';
-import signupImage from '../assets/form/signup.jpg';
+import signupImage from '../assets/form/signUp.jpg';
 import logo from '../assets/logo.png';
 
 
