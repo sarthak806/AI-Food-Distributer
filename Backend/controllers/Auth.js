@@ -1,6 +1,5 @@
 
 const User = require('../models/User');
-const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -24,6 +23,15 @@ const sendOTPUsingEmail = async(req, res)=>{
       success: false,
       message: "All fields are mandatory",
     });
+  }
+
+  const normalizedEmail = typeof email === 'string' ? email.toLowerCase().trim() : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: "Please provide a valid email address" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
   }
 
   if(password !== confirmPassword){
@@ -100,6 +108,10 @@ const OTPVerification = async(req, res)=>{
         message: 'Email and OTP are required'
       });
     }
+
+      if (!password || password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+      }
 
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -198,9 +210,12 @@ const AuthenticateUser = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email and password are required' });
   }
 
-  try {
-    const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = email.toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+  }
 
+  try {
     // Check if user exists
     let user = await User.findOne({ email: normalizedEmail });
     if (!user) {
@@ -258,9 +273,12 @@ const ForgotPasswordOTP = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email is required' });
   }
 
-  try {
-    const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = email.toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+  }
 
+  try {
     // Check if user exists
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
@@ -283,7 +301,11 @@ const ForgotPasswordOTP = async (req, res) => {
       await sendEmail(normalizedEmail, subject, `Your OTP is: ${otp}`, htmlBody);
       console.log(`Reset email sent to ${normalizedEmail}`);
     } catch (emailError) {
-      console.log(`\n===============================================\n🔑 DEV MODE RESET OTP for ${normalizedEmail}: ${otp}\n===============================================\n`);
+      console.error('Reset OTP email delivery failed:', emailError.message);
+      return res.status(502).json({
+        success: false,
+        message: 'Unable to send the reset email right now. Please try again later.',
+      });
     }
 
     res.json({ success: true, message: 'OTP sent to your email' });
@@ -307,7 +329,7 @@ const ForgotPassword = async (req, res) => {
   }
 
   try {
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = typeof email === 'string' ? email.toLowerCase().trim() : '';
     const cleanOtp = otp.toString().trim().toLowerCase();
 
     // Find OTP in database
@@ -333,6 +355,10 @@ const resetPassword = async (req, res) => {
     // Validate input
     if (!email || !otp || !newPassword) {
       return res.status(400).json({ success: false, message: 'Please provide all required fields' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -361,75 +387,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// -----------------------------------------  Google Login Controller  -----------------------------------------
-const googleLogin = async (req, res) => {
-  const { credential, role } = req.body;
-
-  try {
-    if (!credential) {
-      return res.status(400).json({ success: false, message: 'Google credential is required' });
-    }
-
-    const googleUser = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${credential}` },
-    });
-    const { email, name, picture } = googleUser.data;
-
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email could not be extracted from Google token' });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    let user = await User.findOne({ email: normalizedEmail });
-    if (!user) {
-      const randomPassword = crypto.randomBytes(16).toString('hex');
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(randomPassword, salt);
-
-      user = new User({
-        name: name || 'Google User',
-        email: normalizedEmail,
-        password: hashedPassword,
-        role: role || 'Donar',
-        profileImage: picture || `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(name || 'User')}`,
-        isVerified: true,
-      });
-
-      await user.save();
-    }
-
-    const tokenPayload = {
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        role: user.role,
-      },
-    };
-
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '12h' });
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 12 * 60 * 60 * 1000,
-    }).status(200).json({
-      success: true,
-      message: "Google Login successful!",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        profileImage: user.profileImage,
-        isVerified: user.isVerified
-      }
-    });
-  } catch (err) {
-    console.error('Google Auth Error:', err);
-    res.status(500).json({ success: false, message: 'Google authentication failed: ' + err.message });
-  }
-};
-
-module.exports = {sendOTPUsingEmail, OTPVerification, AuthenticateUser, ForgotPasswordOTP, ForgotPassword, resetPassword, googleLogin};
+module.exports = {sendOTPUsingEmail, OTPVerification, AuthenticateUser, ForgotPasswordOTP, ForgotPassword, resetPassword};

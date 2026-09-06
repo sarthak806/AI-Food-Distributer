@@ -1,4 +1,4 @@
-import { useState, useEffect} from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
@@ -8,7 +8,6 @@ import Navbar from '../components/common/Navbar';
 import Hero from '../components/LandingPage/Hero'
 import {FeatureSection} from '../components/LandingPage/FeatureSection'
 import { AppUsageSection } from '../components/LandingPage/AppUsageSection'
-import FAQ from '../components/LandingPage/FAQ';
 import Footer from '../components/common/Footer';
 
 
@@ -30,7 +29,6 @@ const LandingPage = () => {
           <Hero className='z-0'/>
           <FeatureSection />
           <AppUsageSection />
-          <FAQ />
           <Footer />
 
     </div>

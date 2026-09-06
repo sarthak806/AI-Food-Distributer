@@ -141,7 +141,8 @@ export default function ForgotPassword({
           email: email.trim(),
           otp: enteredOtp,
           newPassword,
-        }
+        },
+        { withCredentials: true }
       );
       if (response.data && response.data.success) {
         enqueueSnackbar("Password reset successfully! Please login.", { 
@@ -154,9 +155,11 @@ export default function ForgotPassword({
           variant: 'error',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("OTP verification error:", error);
-      const errorMsg = error.response?.data?.message || error.response?.data?.msg || "Failed to reset password. Please try again.";
+      const errorMsg = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to reset password. Please try again."
+        : "Failed to reset password. Please try again.";
       enqueueSnackbar(errorMsg, { 
         variant: 'error',
       });

@@ -37,7 +37,5 @@ services:
           name: shareplate
           type: web
           envVarKey: RENDER_EXTERNAL_URL
-      - key: VITE_GOOGLE_CLIENT_ID
-        sync: false
       - key: VITE_GOOGLE_MAPS_API_KEY
         sync: false

@@ -3,10 +3,14 @@
  * Usage: node scripts/createAdmin.js
  */
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+const { createRequire } = require('module');
+
+const backendRoot = path.resolve(__dirname, '..', 'Backend');
+const requireBackend = createRequire(path.join(backendRoot, 'package.json'));
+const mongoose = requireBackend('mongoose');
+const bcrypt = requireBackend('bcryptjs');
+requireBackend('dotenv').config({ path: path.join(backendRoot, '.env') });
 
 const userSchema = new mongoose.Schema({
   name: String,

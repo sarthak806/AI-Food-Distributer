@@ -5,11 +5,10 @@ import carbonFootprint from "@/assets/Landinpage_img/carbonFootprint.jpg";
 import community from "@/assets/Landinpage_img/community.jpg";
 import sustainable from "@/assets/Landinpage_img/sustainable.jpg";
 import redistribution from "@/assets/Landinpage_img/redistribution.png";
-import { ChefHat, Users, Goal } from "lucide-react"; // Import Lucide icons
 
 export const FeatureSection = () => {
   return (
-    <div className="bg-white py-10 md:py-20">
+    <div className="bg-white py-10 md:py-16">
       {/* Feature Section */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl text-center">
         {/* Feature Section Heading */}
@@ -72,55 +71,6 @@ export const FeatureSection = () => {
         </div>
       </div>
 
-      {/* Impact Section */}
-      <div className="bg-green-100 py-12 md:py-20 mt-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl text-center">
-          {/* Impact Section Heading */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-            Our Impact
-          </h2>
-          {/* Impact Section Description */}
-          <p className="text-lg text-gray-700 mb-12 max-w-2xl mx-auto">
-            Together, we have achieved incredible milestones in our mission to
-            reduce food waste and fight hunger.
-          </p>
-
-          {/* Impact Metrics Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Meals Shared */}
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ChefHat className="w-8 h-8 text-green-600" />{" "}
-                {/* Lucide icon for meals */}
-              </div>
-              <h3 className="text-4xl font-bold text-green-600 mb-4">
-                10,000+
-              </h3>
-              <p className="text-lg text-gray-700">Meals Shared</p>
-            </div>
-
-            {/* Supporters */}
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="w-8 h-8 text-blue-600" />{" "}
-                {/* Lucide icon for supporters */}
-              </div>
-              <h3 className="text-4xl font-bold text-blue-600 mb-4">5,000+</h3>
-              <p className="text-lg text-gray-700">Supporters</p>
-            </div>
-
-            {/* Goals Achieved */}
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Goal className="w-8 h-8 text-red-600" />{" "}
-                {/* Lucide icon for goals */}
-              </div>
-              <h3 className="text-4xl font-bold text-red-600 mb-4">500+</h3>
-              <p className="text-lg text-gray-700">Goals Achieved</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

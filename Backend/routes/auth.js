@@ -7,14 +7,8 @@ const {
   AuthenticateUser, 
   ForgotPasswordOTP, 
   ForgotPassword, 
-  resetPassword, 
-  googleLogin
+  resetPassword
 } = require('../controllers/Auth');
-
-// @route   POST /api/auth/google
-// @desc    Google OAuth login
-// @access  Public
-router.post('/google', googleLogin);
 
 // @route   POST /api/auth/send-otp
 // @desc    Register a new user with email verification
