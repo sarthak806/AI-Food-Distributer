@@ -101,10 +101,11 @@ npm run dev
 ## 👨‍💻 Team
 
 Thanks to our amazing team:
-- Shripad Khandare
-- Gahinath Madake
-- Rohan Wagh
-- Shreyash Padase
+- Sarthak Pandey
+- Kush Kundaliya
+- Anurag
+- Varnit Singh
+- Shruti Sinha
 
 ## 🤝 Contributing
 
