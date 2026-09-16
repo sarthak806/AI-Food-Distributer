@@ -1,13 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  ChevronUp,
-  BarChart,
-  PieChart,
-  LineChart,
-  Users,
-  Smile,
-  Heart,
-} from "lucide-react"; // Lucide Icons
+import { useEffect, useState } from "react";
+import { ChevronDown, HelpCircle } from "lucide-react";
 import axios from "axios";
 
 interface Faq {
@@ -15,54 +7,91 @@ interface Faq {
   answer: string;
 }
 
-function App() {
-  const [faqData, setFaqData] = useState<Faq[]>([]);
+const fallbackFaqs: Faq[] = [
+  {
+    question: "What is SharePlate?",
+    answer:
+      "SharePlate is a food-sharing platform that connects surplus food with people and organizations that need it.",
+  },
+  {
+    question: "Who can donate food?",
+    answer:
+      "Individuals, restaurants, cafés, grocery stores, event organizers, and community groups can list safe surplus food.",
+  },
+  {
+    question: "Who can request food?",
+    answer:
+      "Individuals, NGOs, shelters, and community organizations can browse available donations and request support.",
+  },
+  {
+    question: "Is SharePlate free to use?",
+    answer:
+      "Yes. SharePlate is designed to make food sharing accessible to everyone in the community.",
+  },
+  {
+    question: "How do I arrange collection?",
+    answer:
+      "After a request is accepted, the donor and recipient can coordinate the collection details through the platform.",
+  },
+];
 
-  const fetchfaqData = async () => {
-    try {
-      const Data = await axios.get(
-        `${import.meta.env.VITE_Backend_URL}/api/faq`
-      );
-      setFaqData(Data.data);
-    } catch (error) {
-      console.error("Failed to fetch FAQs", error);
-    }
-  };
+const FAQ = () => {
+  const [faqData, setFaqData] = useState<Faq[]>(fallbackFaqs);
 
   useEffect(() => {
-    fetchfaqData();
+    const fetchFaqData = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_Backend_URL}/api/faq`
+        );
+
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          setFaqData(response.data);
+        }
+      } catch {
+        setFaqData(fallbackFaqs);
+      }
+    };
+
+    fetchFaqData();
   }, []);
 
-
   return (
-    <div className="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      {/* FAQ Section */}
-      <div className="mb-20">
-        {/* FAQ Heading */}
-        <h2 className="text-4xl font-bold text-center mb-12 text-gray-800">
-          FAQ
-        </h2>
-
-        {/* FAQ List */}
-        {faqData.map((faq, index) => (
-          <div
-            key={index}
-            className="border border-gray-200 mb-4 bg-white hover:bg-gray-50 transition-all rounded-lg shadow-sm"
-          >
-            <details className="group">
-              <summary className="flex items-center justify-between cursor-pointer p-6">
-                <span className="text-lg font-semibold text-gray-700">
-                  {faq.question}
-                </span>
-                <ChevronUp className="text-green-600 group-open:rotate-180 transition-transform" />
-              </summary>
-              <p className="px-6 pb-6 text-gray-600">{faq.answer}</p>
-            </details>
+    <section id="faq" className="bg-[#fbf8f0] py-16 md:py-20">
+      <div className="mx-auto max-w-4xl px-6 sm:px-10 lg:px-12">
+        <div className="text-center">
+          <div className="mx-auto flex h-5 w-5 items-center justify-center text-[#00602d]">
+            <HelpCircle className="h-4 w-4" />
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-export default App;
+          <h2 className="mt-3 font-serif text-3xl font-bold text-[#10261b]">
+            Questions, answered.
+          </h2>
+        </div>
+
+        <div className="mx-auto mt-6 max-w-3xl space-y-0">
+          {faqData.map((faq) => (
+            <details
+              key={faq.question}
+              className="group border-y border-[#ddd6c6] transition hover:border-[#b8ccb8]"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-4 text-sm font-bold text-[#10261b]">
+                <span>{faq.question}</span>
+
+                <ChevronDown className="h-3 w-3 shrink-0 text-[#00602d] transition-transform duration-300 group-open:rotate-180" />
+              </summary>
+
+              <div className="pb-3 text-[#536258]">
+                <p className="text-sm leading-6">
+                  {faq.answer}
+                </p>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default FAQ;
