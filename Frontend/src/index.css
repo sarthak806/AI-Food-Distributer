@@ -1,120 +1,1082 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================
+   1. THEME VARIABLES
+========================================== */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 70 30% 96%;
+    --foreground: 155 25% 12%;
+
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 155 25% 12%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 159 45% 22%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 16 69% 73%;
-    --sidebar-primary-foreground: 151 19% 9%;
-    --sidebar-accent: 159 35% 29%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 159 28% 30%;
-    --sidebar-ring: 16 69% 73%;
-  }
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --popover-foreground: 155 25% 12%;
+
+    --primary: 145 45% 31%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 95 40% 93%;
+    --secondary-foreground: 145 45% 25%;
+
+    --muted: 95 30% 94%;
+    --muted-foreground: 155 10% 43%;
+
+    --accent: 95 40% 93%;
+    --accent-foreground: 145 45% 25%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 100 25% 87%;
+    --input: 100 25% 87%;
+    --ring: 145 45% 31%;
+
+    --chart-1: 100 45% 65%;
+    --chart-2: 145 45% 31%;
+    --chart-3: 90 35% 75%;
+    --chart-4: 35 65% 65%;
+    --chart-5: 200 35% 55%;
+
+    --radius: 1.5rem;
+
+    --sidebar-background: 70 30% 96%;
+    --sidebar-foreground: 155 25% 12%;
+    --sidebar-primary: 145 45% 31%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 95 40% 93%;
+    --sidebar-accent-foreground: 145 45% 25%;
+    --sidebar-border: 100 25% 87%;
+    --sidebar-ring: 145 45% 31%;
   }
-}
-@layer base {
+
+  .dark {
+    --background: 222 25% 8%;
+    --foreground: 0 0% 96%;
+
+    --card: 222 22% 11%;
+    --card-foreground: 0 0% 96%;
+
+    --popover: 222 22% 11%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 105 40% 65%;
+    --primary-foreground: 155 25% 12%;
+
+    --secondary: 155 15% 20%;
+    --secondary-foreground: 0 0% 96%;
+
+    --muted: 155 15% 20%;
+    --muted-foreground: 155 10% 70%;
+
+    --accent: 155 15% 20%;
+    --accent-foreground: 0 0% 96%;
+
+    --destructive: 0 62% 35%;
+    --destructive-foreground: 0 0% 96%;
+
+    --border: 155 12% 24%;
+    --input: 155 12% 24%;
+    --ring: 105 40% 65%;
+
+    --sidebar-background: 222 25% 8%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 105 40% 65%;
+    --sidebar-primary-foreground: 155 25% 12%;
+    --sidebar-accent: 155 15% 20%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 155 12% 24%;
+    --sidebar-ring: 105 40% 65%;
+  }
+
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+
+    margin: 0;
+    font-family: "DM Sans", sans-serif;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    'DM Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* ==========================================
+   2. GLOBAL DASHBOARD STYLES
+========================================== */
 
 .font-serif {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: "Playfair Display", Georgia, serif;
 }
 
+.donor-dashboard {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 18px;
+  box-sizing: border-box;
+  background: #f6f7ef;
+  color: #14271f;
+}
+
+.donor-dashboard *,
+.donor-dashboard *::before,
+.donor-dashboard *::after {
+  box-sizing: border-box;
+}
+
+.dashboard-card {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #dce7d6;
+  border-radius: 30px;
+  box-shadow: 0 12px 32px rgb(44 93 55 / 4%);
+}
+
+/* ==========================================
+   3. DONATION JOURNEY CARD
+========================================== */
+
+.journey-card {
+  width: 100%;
+  margin-top: 20px;
+  padding: 28px 34px 30px;
+  overflow: hidden;
+}
+
+.journey-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 38px;
+}
+
+.journey-heading-group {
+  min-width: 0;
+}
+
+.section-eyebrow {
+  margin: 0 0 12px;
+
+  color: #075b43;
+
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.journey-title {
+  margin: 0;
+
+  color: #102a20;
+
+  font-size: clamp(25px, 2.2vw, 32px);
+  font-weight: 600;
+  line-height: 1.3;
+
+  letter-spacing: -0.8px;
+}
+
+.total-donations {
+  flex-shrink: 0;
+  margin: 3px 0 0;
+
+  color: #64776d;
+
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ==========================================
+   4. ANIMATED DONATION TIMELINE
+========================================== */
+
+.donation-journey {
+  position: relative;
+  isolation: isolate;
+
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  width: 100%;
+  align-items: start;
+}
+
+/*
+  A SINGLE continuous line.
+
+  The first icon center is at 12.5%.
+  The last icon center is at 87.5%.
+
+  The line runs behind all four icons.
+*/
+
+.donation-journey::before {
+  content: "";
+
+  position: absolute;
+  z-index: 0;
+
+  top: 25px;
+  left: 12.5%;
+  right: 12.5%;
+
+  height: 2px;
+
+  background-image: repeating-linear-gradient(
+    to right,
+    #9bc889 0,
+    #9bc889 6px,
+    transparent 6px,
+    transparent 12px
+  );
+
+  background-repeat: repeat-x;
+  background-size: 12px 2px;
+  background-position: 0 0;
+
+  animation: donor-journey-flow 1.2s linear infinite;
+
+  pointer-events: none;
+}
+
+/* Each timeline stage */
+
+.journey-stage {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  min-width: 0;
+  text-align: center;
+}
+
+/* Circular icon */
+
+.journey-icon {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+
+  color: #236b43;
+  background: #e8f3e1;
+
+  border: 1px solid #d7e5d0;
+  border-radius: 50%;
+}
+
+/* Stage title */
+
+.journey-stage-label {
+  display: block;
+  margin-top: 11px;
+
+  color: #14271f;
+
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Stage donation count */
+
+.journey-stage-count {
+  display: block;
+  margin-top: 3px;
+
+  color: #687a70;
+
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Continuous dotted-line movement */
+
+@keyframes donor-journey-flow {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -12px 0;
+  }
+}
+
+/* ==========================================
+   5. LOWER DASHBOARD GRID
+========================================== */
+
+.donor-dashboard-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 2.08fr)
+    minmax(280px, 1fr);
+
+  gap: 26px;
+
+  margin-top: 26px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* ==========================================
+   6. RECENT DONATIONS CARD
+========================================== */
+
+.recent-card {
+  display: flex;
+  flex-direction: column;
+
+  padding: 30px;
+  min-height: 360px;
+}
+
+.dashboard-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
+  margin-bottom: 25px;
+}
+
+.dashboard-section-header > div {
+  min-width: 0;
+}
+
+.dashboard-section-title {
+  margin: 0;
+
+  color: #102a20;
+
+  font-size: clamp(23px, 2vw, 28px);
+  font-weight: 600;
+  line-height: 1.3;
+
+  letter-spacing: -0.5px;
+}
+
+.view-all-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  flex-shrink: 0;
+
+  margin-top: 20px;
+  padding: 4px 0;
+
+  color: #075b43;
+  background: transparent;
+  border: none;
+
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+
+.view-all-button:hover:not(:disabled) {
+  opacity: 0.7;
+}
+
+.view-all-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Empty state */
+
+.recent-empty-state {
+  display: flex;
+  flex: 1;
+
+  min-height: 210px;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 20px;
+
+  padding: 30px;
+
+  text-align: center;
+
+  background: #edf5e7;
+
+  border: 1px dashed #c8dfb9;
+  border-radius: 25px;
+}
+
+.empty-state-icon {
+  color: #56a03d;
+  flex-shrink: 0;
+}
+
+.recent-empty-state p {
+  margin: 0;
+
+  color: #687a70;
+
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Actual recent donation records */
+
+.recent-donations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recent-donation-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  min-width: 0;
+  padding: 14px;
+
+  border: 1px solid #e1ebdc;
+  border-radius: 16px;
+
+  background: #fbfcf9;
+}
+
+.recent-donation-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+
+  color: #397e43;
+  background: #e8f3e1;
+
+  border-radius: 13px;
+}
+
+.recent-donation-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-donation-details h3 {
+  margin: 0 0 4px;
+
+  color: #173226;
+  font-size: 14px;
+  font-weight: 600;
+
+  overflow-wrap: anywhere;
+}
+
+.recent-donation-details p {
+  margin: 3px 0 0;
+
+  color: #687a70;
+  font-size: 12px;
+}
+
+.donation-status {
+  flex-shrink: 0;
+
+  padding: 5px 9px;
+
+  color: #276b43;
+  background: #e8f3e1;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ==========================================
+   7. DONATION ACTIVITY CARD
+========================================== */
+
+.impact-card {
+  display: flex;
+  flex-direction: column;
+
+  padding: 30px;
+  min-width: 0;
+}
+
+.impact-header {
+  margin-bottom: 24px;
+}
+
+.impact-header .section-eyebrow {
+  margin-bottom: 12px;
+}
+
+.impact-description {
+  margin: 8px 0 0;
+
+  color: #687a70;
+
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Chart container */
+
+.activity-chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+
+  flex: 1;
+
+  min-height: 220px;
+
+  padding: 24px 20px 22px;
+
+  background: #eaf4e3;
+
+  border: 1px solid #dce8d5;
+  border-radius: 24px;
+}
+
+/* Bar chart */
+
+.activity-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  gap: clamp(7px, 1vw, 13px);
+
+  width: 100%;
+  height: 112px;
+
+  padding: 0 4px;
+}
+
+/* Individual bars */
+
+.activity-bar {
+  display: block;
+
+  width: 100%;
+  max-width: 28px;
+  min-width: 8px;
+
+  background: #acd58e;
+
+  border-radius: 999px 999px 0 0;
+
+  transform-origin: bottom;
+  animation: activity-bar-breathe 2.4s ease-in-out infinite;
+}
+
+.activity-bar:nth-child(2) {
+  animation-delay: 180ms;
+}
+
+.activity-bar:nth-child(3) {
+  animation-delay: 360ms;
+}
+
+.activity-bar:nth-child(4) {
+  animation-delay: 540ms;
+}
+
+.activity-bar:nth-child(5) {
+  animation-delay: 720ms;
+}
+
+.activity-bar:nth-child(6) {
+  animation-delay: 900ms;
+}
+
+.activity-bar:nth-child(7) {
+  animation-delay: 1080ms;
+}
+
+@keyframes activity-bar-breathe {
+  0%,
+  100% {
+    transform: scaleY(0.84);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Message below the chart */
+
+.activity-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  margin: 25px 0 0;
+
+  color: #687a70;
+
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+
+  text-align: center;
+}
+
+.activity-message svg {
+  flex-shrink: 0;
+  color: #3c8c45;
+}
+
+/* ==========================================
+   8. EXISTING DASHBOARD HERO
+========================================== */
+
+.dashboard-hero {
+  width: 100%;
+  min-width: 0;
+  padding: 28px 30px 30px;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 88% 18%,
+      rgb(183 221 159 / 20%) 0 4rem,
+      transparent 4.1rem
+    ),
+    #2d7545;
+
+  box-shadow: 0 1rem 2.5rem rgb(44 93 55 / 12%);
+}
+
+.dashboard-hero .section-eyebrow {
+  color: #c7e5b7;
+}
+
+.dashboard-hero-content {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.dashboard-hero-content > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dashboard-hero-title {
+  margin: 0;
+  max-width: 100%;
+  color: #ffffff;
+  font-size: clamp(30px, 3vw, 44px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-hero-description {
+  max-width: 560px;
+  min-width: 0;
+  margin: 12px 0 0;
+  color: rgb(255 255 255 / 76%);
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-hero-action {
+  display: inline-flex;
+  min-height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d6efb7;
+  border-radius: 999px;
+  padding: 0 18px;
+  background: #d6efb7;
+  color: #193923;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.dashboard-hero-action:hover {
+  transform: translateY(-2px);
+  background: #ffffff;
+}
+
+.donor-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.summary-card {
+  min-width: 0;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #dce7d6;
+  border-radius: 22px;
+  box-shadow: 0 10px 24px rgb(44 93 55 / 4%);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgb(44 93 55 / 9%);
+}
+
+.summary-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-card-header p {
+  margin: 0;
+  color: #64776d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.summary-card-header span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+  background: #e8f3e1;
+  color: #397e43;
+}
+
+.summary-card-header svg {
+  width: 19px;
+  height: 19px;
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 18px;
+  color: #173226;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.summary-card small {
+  display: block;
+  margin-top: 9px;
+  color: #687a70;
+  font-size: 11px;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-hero-content {
+    align-items: flex-start;
+  }
+
+  .dashboard-hero-action {
+    max-width: 100%;
+  }
+
+  .donor-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-hero {
+    padding: 24px 20px;
+  }
+
+  .dashboard-hero-content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-hero-action {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .donor-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==========================================
+   9. SCROLLBAR
+========================================== */
+
 .thin-scrollbar::-webkit-scrollbar {
-  width: 6px; /* Width of the scrollbar */
+  width: 6px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-track {
-  background: transparent; /* Transparent background */
+  background: transparent;
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #acacac4f; /* Thumb color: neutral-600 */
-  border-radius: 9999px; /* Fully rounded ends */
+  background-color: rgb(172 172 172 / 31%);
+  border-radius: 9999px;
 }
 
+/* ==========================================
+   10. ACCESSIBILITY
+========================================== */
 
+.view-all-button:focus-visible {
+  outline: 2px solid #2d7545;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+@media (prefers-reduced-motion: reduce) {
+  .donation-journey::before {
+    animation: none;
   }
-  body {
-    @apply bg-background text-foreground;
+
+  .activity-bar {
+    animation: none;
+  }
+
+  .view-all-button {
+    transition: none;
+  }
+}
+
+/* ==========================================
+   11. TABLET
+========================================== */
+
+@media (max-width: 1024px) {
+  .donor-dashboard {
+    padding: 14px;
+  }
+
+  .journey-card {
+    padding: 26px;
+  }
+
+  .donor-dashboard-grid {
+    grid-template-columns:
+      minmax(0, 1.6fr)
+      minmax(250px, 1fr);
+
+    gap: 18px;
+    margin-top: 20px;
+  }
+
+  .recent-card,
+  .impact-card {
+    padding: 24px;
+  }
+
+  .journey-header {
+    margin-bottom: 32px;
+  }
+}
+
+/* ==========================================
+   12. MOBILE
+========================================== */
+
+@media (max-width: 767px) {
+  .donor-dashboard {
+    padding: 12px;
+  }
+
+  .dashboard-card {
+    border-radius: 22px;
+  }
+
+  .journey-card {
+    padding: 22px 18px 25px;
+  }
+
+  .journey-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  .journey-title {
+    font-size: 25px;
+    line-height: 1.35;
+  }
+
+  .total-donations {
+    font-size: 13px;
+  }
+
+  .section-eyebrow {
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+
+  /* Two-column mobile timeline */
+
+  .donation-journey {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 28px;
+  }
+
+  .donation-journey::before {
+    display: none;
+  }
+
+  .journey-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .journey-stage-label {
+    margin-top: 9px;
+    font-size: 14px;
+  }
+
+  .journey-stage-count {
+    font-size: 12px;
+  }
+
+  /* Stack lower cards */
+
+  .donor-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .recent-card,
+  .impact-card {
+    padding: 22px 18px;
+    min-height: auto;
+  }
+
+  .dashboard-section-header {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .dashboard-section-title {
+    font-size: 23px;
+  }
+
+  .view-all-button {
+    margin-top: 17px;
+    font-size: 13px;
+  }
+
+  .recent-empty-state {
+    min-height: 190px;
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .recent-empty-state p {
+    font-size: 13px;
+  }
+
+  .impact-header {
+    margin-bottom: 20px;
+  }
+
+  .activity-chart {
+    min-height: 210px;
+    padding: 22px 18px;
+    border-radius: 20px;
+  }
+
+  .activity-bars {
+    height: 100px;
+    gap: 10px;
+  }
+}
+
+/* ==========================================
+   13. SMALL MOBILE
+========================================== */
+
+@media (max-width: 380px) {
+  .journey-title {
+    font-size: 22px;
+  }
+
+  .journey-card {
+    padding: 20px 14px;
+  }
+
+  .journey-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .donation-journey::before {
+    top: 22px;
+  }
+
+  .recent-card,
+  .impact-card {
+    padding: 18px 14px;
+  }
+
+  .dashboard-section-title {
+    font-size: 21px;
+  }
+
+  .activity-bars {
+    gap: 7px;
+  }
+
+  .recent-donation-item {
+    gap: 9px;
+    padding: 10px;
   }
 }

@@ -9,6 +9,7 @@ const otpVerificationTemplate = require('../helper/OTPVerification');
 const {calculateDistance}= require("../utils/calculateDistance");
 const {calculateMaxDistance}= require("../utils/calculateMaxDistance");
 const {generateNGOEmail}= require("../utils/generateNgoEmail");
+const { verifyIndianPincode } = require("../utils/pincode");
 
 require("dotenv").config();
 
@@ -260,14 +261,88 @@ const createDonation = async (req, res) => {
     
     const images = Array.isArray(req.body.images) ? req.body.images : (req.body.imageUrl ? [req.body.imageUrl] : []);
     const primaryImageUrl = req.body.imageUrl || images[0] || '';
+    const quantity = Number(req.body.quantity);
+    const expirationDate = new Date(req.body.expirationDate);
+    const pickupStart = new Date(req.body.pickupStart);
+    const pickupEnd = new Date(req.body.pickupEnd);
+
+    if (
+      !req.body.name?.trim() ||
+      !req.body.category ||
+      !req.body.description?.trim() ||
+      !Number.isFinite(quantity) ||
+      quantity <= 0 ||
+      !req.body.unit ||
+      !req.body.dietaryCategory ||
+      !req.body.allergens?.trim() ||
+      !req.body.storageCondition ||
+      !req.body.packagingStatus ||
+      Number.isNaN(expirationDate.getTime()) ||
+      expirationDate <= new Date() ||
+      Number.isNaN(pickupStart.getTime()) ||
+      Number.isNaN(pickupEnd.getTime()) ||
+      pickupEnd <= pickupStart ||
+      pickupEnd > expirationDate ||
+      !req.body.pickupArea?.trim() ||
+      !/^[1-9][0-9]{5}$/.test(String(req.body.pincode || '')) ||
+      !req.body.address?.trim() ||
+      !req.body.safetyConfirmedAt
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide valid donation, safety, and pickup details',
+      });
+    }
+
+    let pincodeExists = false;
+    try {
+      pincodeExists = await verifyIndianPincode(req.body.pincode);
+    } catch (pincodeError) {
+      console.error('Pincode verification failed:', pincodeError.message);
+      return res.status(503).json({
+        success: false,
+        message: 'Pincode could not be verified. Please try again.',
+      });
+    }
+
+    if (!pincodeExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pincode does not exist. Enter a valid pincode.',
+      });
+    }
+
+    if (images.length > 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'A maximum of 4 images is allowed',
+      });
+    }
 
     // Create a new donation using the mongoose model
     const donation = new Donation({
-      donor: req.body.donor,
+      donor: req.user.id,
       foodType: req.body.foodType,
-      quantity: req.body.quantity,
-      expirationDate: req.body.expirationDate,
+      category: req.body.category,
+      otherCategory: req.body.otherCategory,
+      quantity,
+      unit: req.body.unit,
+      dietaryCategory: req.body.dietaryCategory,
+      allergens: req.body.allergens.trim(),
+      preparationDate: req.body.preparationDate || undefined,
+      storageCondition: req.body.storageCondition,
+      otherStorage: req.body.otherStorage,
+      packagingStatus: req.body.packagingStatus,
+      packagingNotes: req.body.packagingNotes,
+      expirationDate,
+      pickupStart,
+      pickupEnd,
       pickupLocation: req.body.pickupLocation,
+      pickupArea: req.body.pickupArea,
+      pincode: String(req.body.pincode),
+      address: req.body.address,
+      pickupInstructions: req.body.pickupInstructions,
+      safetyConfirmedAt: new Date(req.body.safetyConfirmedAt),
       name: req.body.name,
       description: req.body.description,
       imageUrl: primaryImageUrl,
@@ -760,6 +835,3 @@ module.exports = {
   getalldonations,
   getAcceptedDonationsByDonor,
 };
-
-
-

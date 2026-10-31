@@ -22,7 +22,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
           <br />
           Move smarter.
         </h1>
-        <p className="max-w-[500px] text-base leading-8 text-[#718078]">
+        <p className="max-w-[500px] text-base leading-8 text-[#536258]">
           ShareBite connects surplus food with the people and organizations that can put it to work — quickly, safely, and intelligently.
         </p>
 
@@ -42,7 +42,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
           </a>
         </div>
 
-        <div className="mt-8 flex items-center gap-3 text-xs text-[#718078]">
+        <div className="mt-8 flex items-center gap-3 text-xs text-[#536258]">
           <span className="flex">
             <i className="h-7 w-7 rounded-full border-2 border-[#f7faf5] bg-[#89a878]" />
             <i className="-ml-2 h-7 w-7 rounded-full border-2 border-[#f7faf5] bg-[#efbd70]" />
@@ -103,7 +103,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
             <div className="flex-1">
               <span className="text-[.68rem] font-bold uppercase tracking-[.14em] text-[#17633b]">SYSTEM STATUS</span>
               <strong className="block text-sm">Awaiting live data</strong>
-              <p className="text-[.68rem] text-[#718078]">No donations connected yet. Your real metrics will appear here.</p>
+              <p className="text-[.68rem] text-[#536258]">No donations connected yet. Your real metrics will appear here.</p>
             </div>
             <span className="text-xs font-bold text-[#17633b]">● Ready</span>
           </div>

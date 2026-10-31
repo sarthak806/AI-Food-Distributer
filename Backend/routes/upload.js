@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { authMiddleware } = require('../middlewares/Authentication');
 const { uploadImageToCloudinary } = require('../utils/imageupload');
 
 // Route handler with better error handling
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   console.log("Upload endpoint hit");
   
   try {
@@ -21,16 +22,24 @@ router.post('/', async (req, res) => {
     }
     
     const { base64Image, folder } = req.body;
+    const supportedImage = /^data:image\/(jpeg|png|webp);base64,/i.test(base64Image);
+
+    if (!supportedImage) {
+      return res.status(400).json({
+        success: false,
+        message: "Only JPG, PNG, and WebP images are supported"
+      });
+    }
     
     // Estimate size in bytes
     const estimatedSizeBytes = (base64Image.length * 0.75);
     const sizeInMB = estimatedSizeBytes / (1024 * 1024);
-    const MAX_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB in bytes
+    const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
     if (estimatedSizeBytes > MAX_SIZE_BYTES) {
       return res.status(400).json({
         success: false,
-        message: `Image size exceeds the maximum limit of 1GB (Current: ${sizeInMB.toFixed(2)}MB)`
+        message: `Image size exceeds the maximum limit of 10MB (Current: ${sizeInMB.toFixed(2)}MB)`
       });
     }
 

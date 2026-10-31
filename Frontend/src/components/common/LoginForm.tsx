@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useSnackbar } from "notistack";
 import { useAuth } from "@/context/AuthContext";
+import AdminPortalLink from "@/admin/AdminPortalLink";
 
 export default function LoginForm({
   className,
@@ -15,16 +16,10 @@ export default function LoginForm({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { user, setUser, fetchUserData } = useAuth();
   const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 40);
-    return () => clearTimeout(t);
-  }, []);
 
   const submitHandler = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,6 +124,7 @@ export default function LoginForm({
             {...props}
             onSubmit={submitHandler}
           >
+            <input name="website" type="text" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-px w-px opacity-0" aria-hidden="true" />
             {/* decorative brand shape */}
             <div
               aria-hidden
@@ -252,6 +248,14 @@ export default function LoginForm({
                   )}
                 </Button>
               </div>
+
+              <div className="mt-4 flex items-center gap-3">
+                <span className="h-px flex-1 bg-[#DDE8DC]" />
+                <span className="text-[11px] font-bold uppercase tracking-[.15em] text-[#929D96]">or</span>
+                <span className="h-px flex-1 bg-[#DDE8DC]" />
+              </div>
+
+              <AdminPortalLink className="mt-4 w-full rounded-[15px] bg-transparent" />
 
               {/* Signup */}
               <div

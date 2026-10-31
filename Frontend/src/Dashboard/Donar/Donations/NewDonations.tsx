@@ -56,6 +56,9 @@ const Donatemain: React.FC = () => {
               key={index}
               src={img.src}
               alt={img.alt}
+              loading={index === 0 ? "eager" : "lazy"}
+              width={1024}
+              height={320}
               className={`absolute w-full h-full object-cover rounded-2xl transition-opacity duration-1000 ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
             />
           ))}

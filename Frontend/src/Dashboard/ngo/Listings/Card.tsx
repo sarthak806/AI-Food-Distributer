@@ -116,7 +116,10 @@ const Card: React.FC<DonationProp> = ({ donation }) => {
     <div className="w-[300px] p-3 bg-sidebar rounded-lg shadow-xl border">
       <img
         src={donation.imageUrl}
-        alt={donation.foodType}
+        alt={`${donation.foodType} donation`}
+        loading="lazy"
+        width={300}
+        height={200}
         className="w-full object-cover rounded-md"
       />
 

@@ -13,6 +13,38 @@ require('dotenv').config();
 
 // Initialize Express app
 const app = express();
+app.set('trust proxy', 1);
+
+// Enforce transport security in production while allowing local HTTP development.
+app.use((req, res, next) => {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  if (process.env.NODE_ENV === 'production' && forwardedProto !== 'https') {
+    return res.redirect(`https://${req.headers.host}${req.originalUrl}`);
+  }
+  next();
+});
+
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+const requestCounts = new Map();
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return next();
+  const key = `${req.ip}:${req.path}`;
+  const now = Date.now();
+  const recent = (requestCounts.get(key) || []).filter((time) => now - time < 60_000);
+  if (recent.length >= 30) return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+  recent.push(now);
+  requestCounts.set(key, recent);
+  next();
+});
 
 // Configure CORS
 const corsOptions = {
@@ -36,6 +68,15 @@ app.use(express.urlencoded({
   extended: true,
   parameterLimit: 100000
 }));
+
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body?.website) {
+    return res.status(400).json({ success: false, message: 'Invalid submission' });
+  }
+  next();
+});
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Google Maps API
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -68,6 +109,7 @@ const donationRoutes = require('./routes/donation');
 const contactRoutes = require('./routes/ContactUs');
 const uploadRoutes = require('./routes/upload');
 const feedBackRoutes = require('./routes/feedback');
+const locationRoutes = require('./routes/location');
 
 // Define routes
 app.use('/api/auth', authRoutes);
@@ -78,6 +120,7 @@ app.use('/user', userRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/feedback/user', feedBackRoutes);
+app.use('/api/location', locationRoutes);
 
 // Test route
 app.get('/api/donation/test', (req, res) => {

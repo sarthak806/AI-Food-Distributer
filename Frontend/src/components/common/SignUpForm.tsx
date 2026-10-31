@@ -273,6 +273,7 @@ export default function SignUpForm({
             {...props}
             onSubmit={sendOtpHandler}
           >
+            <input name="website" type="text" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-px w-px opacity-0" aria-hidden="true" />
             <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#EAF3E7]" />
 
             <div className="relative">

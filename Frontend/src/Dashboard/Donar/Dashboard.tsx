@@ -1,109 +1,451 @@
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Tooltip,
-  YAxis,
-  ResponsiveContainer,
-  XAxis,
-} from "recharts";
-import { useAuth } from "@/context/AuthContext";
+  Plus,
+  Heart,
+  Clock3,
+  Check,
+  Sprout,
+  Leaf,
+  PackageCheck,
+  ArrowRight,
+} from "lucide-react";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
-const COLORS = {
-  forest: "#12352A", forestLight: "#1F5240", ink: "#15181C", coral: "#E8A08E",
-  coralDark: "#DD7C63", paper: "#F6F4EF", card: "#FFFFFF", line: "#E7E3D9", muted: "#8A8F86",
+type DonationStage = {
+  label: string;
+  count: number;
+  icon: typeof Plus;
 };
 
-interface Donation { _id: string; quantity: number; status: "pending" | "accepted" | "delivered"; createdAt: string; }
-interface DashboardStats { totalDonations: number; totalFoodSaved: number; }
-const emptyStats: DashboardStats = { totalDonations: 0, totalFoodSaved: 0 };
+type Donation = {
+  id: string;
+  foodName: string;
+  status: string;
+  quantity?: number;
+  createdAt?: string;
+};
 
-const EmptyState = ({ message = "No data available yet" }: { message?: string }) => (
-  <div className="flex h-full min-h-[150px] items-center justify-center text-sm" style={{ color: COLORS.muted }}>{message}</div>
-);
+type ApiDonation = {
+  _id: string;
+  foodType: string;
+  status: string;
+  quantity?: number;
+  createdAt?: string;
+};
 
-const tooltipStyle = { background: COLORS.ink, border: "none", borderRadius: 10, color: "white", fontSize: 12 };
+type DonorDashboardProps = {
+  totalDonations?: number;
+  listedCount?: number;
+  matchedCount?: number;
+  pickupCount?: number;
+  deliveredCount?: number;
+  recentDonations?: Donation[];
+  onViewAll?: () => void;
+};
 
-const Dashboard = () => {
+export default function DonorDashboard({
+  totalDonations = 0,
+  listedCount = 0,
+  matchedCount = 0,
+  pickupCount = 0,
+  deliveredCount = 0,
+  recentDonations = [],
+  onViewAll,
+}: DonorDashboardProps) {
   const { user } = useAuth();
-  const [stats, setStats] = useState(emptyStats);
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState<{
+    total: number;
+    listed: number;
+    matched: number;
+    pickup: number;
+    delivered: number;
+    recent: Donation[];
+  } | null>(null);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchDonations = async () => {
       try {
-        const donationsRes = await axios.get<Donation[]>(
+        const response = await axios.get<ApiDonation[]>(
           `${import.meta.env.VITE_Backend_URL}/api/donations/my-donations`,
           { withCredentials: true },
         );
-        const userDonations = donationsRes.data || [];
-        setDonations(userDonations);
-        setStats({
-          totalDonations: userDonations.length,
-          totalFoodSaved: userDonations
-            .filter((donation) => donation.status === "accepted" || donation.status === "delivered")
-            .reduce((sum, donation) => sum + donation.quantity, 0),
+        const donations = response.data || [];
+
+        setDashboardData({
+          total: donations.length,
+          listed: donations.length,
+          matched: donations.filter(
+            (donation) =>
+              donation.status === "accepted" ||
+              donation.status === "delivered",
+          ).length,
+          pickup: donations.filter(
+            (donation) => donation.status === "accepted",
+          ).length,
+          delivered: donations.filter(
+            (donation) => donation.status === "delivered",
+          ).length,
+          recent: donations.slice(0, 4).map((donation) => ({
+            id: donation._id,
+            foodName: donation.foodType,
+            status: donation.status,
+            quantity: donation.quantity,
+            createdAt: donation.createdAt,
+          })),
         });
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching donor dashboard:", error);
+        setDashboardData({
+          total: 0,
+          listed: 0,
+          matched: 0,
+          pickup: 0,
+          delivered: 0,
+          recent: [],
+        });
       }
     };
 
-    fetchDashboardData();
+    fetchDonations();
   }, []);
 
-  const hasDonations = donations.length > 0;
-  const monthMap = donations.reduce<Record<string, number>>((result, donation) => {
-    const date = new Date(donation.createdAt);
-    const key = date.toLocaleDateString("en-US", { month: "short" });
-    result[key] = (result[key] || 0) + 1;
-    return result;
-  }, {});
-  const trend = Object.entries(monthMap).map(([label, value]) => ({ label, value }));
-  const sizes = [
-    { label: "Small", value: donations.filter((donation) => donation.quantity < 10).reduce((sum, donation) => sum + donation.quantity, 0), color: COLORS.forestLight },
-    { label: "Medium", value: donations.filter((donation) => donation.quantity >= 10 && donation.quantity < 30).reduce((sum, donation) => sum + donation.quantity, 0), color: COLORS.forest },
-    { label: "Large", value: donations.filter((donation) => donation.quantity >= 30).reduce((sum, donation) => sum + donation.quantity, 0), color: COLORS.coralDark },
-  ];
-  const statuses = [
-    { label: "Delivered", value: donations.filter((donation) => donation.status === "delivered").length, color: COLORS.forest },
-    { label: "Ongoing", value: donations.filter((donation) => donation.status === "accepted").length, color: COLORS.coralDark },
-    { label: "Pending", value: donations.filter((donation) => donation.status === "pending").length, color: COLORS.muted },
-  ];
-  const maxTrend = Math.max(...trend.map((point) => point.value), 1);
-  const firstName = user?.name?.split(" ")[0] || "there";
+  const data = dashboardData || {
+    total: totalDonations,
+    listed: listedCount,
+    matched: matchedCount,
+    pickup: pickupCount,
+    delivered: deliveredCount,
+    recent: recentDonations,
+  };
+  const handleViewAll = onViewAll || (() => navigate("/user/Donar/mydonations"));
 
-  if (loading) {
-    return <div className="flex min-h-screen items-center justify-center" style={{ background: COLORS.paper, color: COLORS.muted }}>Loading dashboard...</div>;
-  }
+  const stages: DonationStage[] = [
+    {
+      label: "Listed",
+      count: data.listed,
+      icon: Plus,
+    },
+    {
+      label: "Matched",
+      count: data.matched,
+      icon: Heart,
+    },
+    {
+      label: "Pickup",
+      count: data.pickup,
+      icon: Clock3,
+    },
+    {
+      label: "Delivered",
+      count: data.delivered,
+      icon: Check,
+    },
+  ];
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.paper, color: COLORS.ink, fontFamily: "Inter, system-ui, sans-serif" }}>
-        <div className="flex flex-col gap-5 px-5 py-6 md:px-8">
-          <section className="relative flex min-h-[190px] items-center justify-between overflow-hidden rounded-2xl p-7 md:p-8" style={{ background: COLORS.forest }}><div className="relative z-10 max-w-xl"><h1 className="mb-3 font-serif text-3xl text-white">Hi {firstName},</h1><p className="mb-5 text-sm leading-relaxed text-white/70">Every donation makes a difference. What do you want to give today?</p>{hasDonations ? <Link to="/user/Donar/donationForm"><Button className="rounded-full px-5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-md" style={{ background: COLORS.coral, color: COLORS.ink }}>Donate now <ArrowRight size={15} className="ml-2 transition-transform duration-200 group-hover:translate-x-0.5" /></Button></Link> : <div><p className="mb-3 text-sm text-white/75">You have not made a donation yet. Make your first donation today.</p><Link to="/user/Donar/donationForm"><Button className="rounded-full px-5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-md" style={{ background: COLORS.coral, color: COLORS.ink }}>Make your first donation <ArrowRight size={15} className="ml-2" /></Button></Link></div>}</div><svg className="mr-3 hidden shrink-0 sm:block" width="150" height="150" viewBox="0 0 160 160" fill="none"><circle cx="80" cy="80" r="77" stroke="white" strokeOpacity=".13"/><path d="M30 90a50 30 0 0 0 100 0z" fill={COLORS.coral}/><ellipse cx="80" cy="90" rx="50" ry="10" fill={COLORS.coralDark}/><circle cx="60" cy="80" r="6" fill="#FFF7EE"/><circle cx="80" cy="74" r="7" fill="#FFF7EE"/><circle cx="100" cy="82" r="5.5" fill="#FFF7EE"/><rect x="77" y="30" width="6" height="34" rx="3" fill="white" fillOpacity=".5"/><rect x="96" y="34" width="6" height="30" rx="3" fill="white" fillOpacity=".5" transform="rotate(18 99 49)"/></svg></section>
-          <div className="grid gap-5 md:grid-cols-2"><StatCard label="Total donations" value={stats.totalDonations} data={trend} color={COLORS.forest} /><StatCard label="Food saved" value={stats.totalFoodSaved} unit="servings" data={trend} color={COLORS.coralDark} /></div>
-          <section className="rounded-2xl border bg-white p-6" style={{ borderColor: COLORS.line }}><div className="mb-3 flex items-start justify-between"><div><h2 className="font-serif text-xl">Donation activity</h2><p className="text-xs" style={{ color: COLORS.muted }}>Donations logged per month</p></div><span className="rounded-full px-3 py-1 text-[11px]" style={{ background: COLORS.paper, color: COLORS.forest }}>Last 7 months</span></div>{hasDonations ? <div className="h-[260px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}><defs><linearGradient id="forestFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.forest} stopOpacity=".28" /><stop offset="100%" stopColor={COLORS.forest} stopOpacity="0" /></linearGradient></defs><CartesianGrid vertical={false} stroke={COLORS.line} /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: COLORS.muted, fontSize: 11 }} /><YAxis allowDecimals={false} domain={[0, maxTrend]} axisLine={false} tickLine={false} tick={{ fill: COLORS.muted, fontSize: 11 }} /><Tooltip contentStyle={tooltipStyle} /><Area type="monotone" dataKey="value" stroke={COLORS.forest} strokeWidth={2.5} fill="url(#forestFill)" /></AreaChart></ResponsiveContainer></div> : <EmptyState message="No donation activity yet" />}</section>
-          <div className="grid gap-5 min-[900px]:grid-cols-2"><section className="rounded-2xl border bg-white p-6" style={{ borderColor: COLORS.line }}><h2 className="font-serif text-xl">Portion sizes</h2><p className="mb-4 text-xs" style={{ color: COLORS.muted }}>Servings by size, all donations</p>{hasDonations ? <div className="h-[190px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={sizes} layout="vertical" margin={{ left: -12, right: 10 }}><XAxis type="number" hide /><YAxis type="category" dataKey="label" width={65} axisLine={false} tickLine={false} tick={{ fill: COLORS.ink, fontSize: 12 }} /><Tooltip contentStyle={tooltipStyle} cursor={{ fill: COLORS.paper }} /><Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={22}>{sizes.map((size) => <Cell key={size.label} fill={size.color} />)}</Bar></BarChart></ResponsiveContainer></div> : <EmptyState />}</section><section className="rounded-2xl border bg-white p-6" style={{ borderColor: COLORS.line }}><h2 className="font-serif text-xl">Donation status</h2><p className="mb-5 text-xs" style={{ color: COLORS.muted }}>{hasDonations ? `Where your ${donations.length} donations stand` : "Where your donations stand"}</p>{hasDonations ? <div className="space-y-4">{statuses.map((status) => <div key={status.label}><div className="mb-1.5 flex justify-between text-xs"><span>{status.label}</span><span style={{ color: COLORS.muted }}>{status.value}</span></div><div className="h-2 overflow-hidden rounded-full" style={{ background: COLORS.paper }}><div className="h-full rounded-full" style={{ width: `${(status.value / donations.length) * 100}%`, background: status.color }} /></div></div>)}</div> : <EmptyState message="No donation status data yet" />}</section></div>
+    <main className="donor-dashboard">
+      <section className="dashboard-hero dashboard-card">
+        <p className="section-eyebrow">Donation dashboard</p>
+        <div className="dashboard-hero-content">
+          <div>
+            <h1 className="font-serif dashboard-hero-title">
+              Welcome back, {user?.name?.split(" ")[0] || "there"}.
+            </h1>
+            <p className="dashboard-hero-description">
+              Turn your surplus into a meal for someone in your community.
+              Every donation helps move food where it is needed most.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="dashboard-hero-action"
+            onClick={() => navigate("/user/Donar/donationForm")}
+          >
+            {data.total > 0 ? "Create donation" : "Make your first donation"}
+            <ArrowRight size={16} />
+          </button>
         </div>
-    </div>
-  );
-};
+      </section>
 
-function StatCard({ label, value, unit, data, color }: { label: string; value: number; unit?: string; data: { label: string; value: number }[]; color: string }) {
-  return <div className="flex min-h-[120px] items-end justify-between rounded-2xl border bg-white p-6" style={{ borderColor: COLORS.line }}><div><p className="mb-2 text-xs" style={{ color: COLORS.muted }}>{label}</p><div className="flex items-baseline gap-1.5"><span className="font-serif text-[42px] leading-none">{value}</span>{unit && <span className="text-xs" style={{ color: COLORS.muted }}>{unit}</span>}</div></div>{data.length > 0 && <div className="h-12 w-24"><ResponsiveContainer width="100%" height="100%"><LineChart data={data}><Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div>}</div>;
+      <section
+        className="donor-summary-grid"
+        aria-label="Donation summary"
+      >
+        <SummaryCard
+          label="Active donations"
+          value={data.listed - data.delivered}
+          detail="Waiting for progress"
+          icon={<PackageCheck />}
+        />
+        <SummaryCard
+          label="Pending pickup"
+          value={data.pickup}
+          detail="Matched with an NGO"
+          icon={<Clock3 />}
+        />
+        <SummaryCard
+          label="Completed donations"
+          value={data.delivered}
+          detail="Successfully delivered"
+          icon={<Check />}
+        />
+        <SummaryCard
+          label="Food redistributed"
+          value={data.delivered}
+          detail="Donations reaching people"
+          icon={<Heart />}
+        />
+      </section>
+
+      {/* =================================
+          DONATION JOURNEY
+      ================================== */}
+      <section
+        className="journey-card dashboard-card"
+        aria-labelledby="journey-heading"
+      >
+        <header className="journey-header">
+          <div className="journey-heading-group">
+            <p className="section-eyebrow">
+              Your donation journey
+            </p>
+
+            <h1
+              id="journey-heading"
+              className="font-serif journey-title"
+            >
+              Every contribution moves food forward.
+            </h1>
+          </div>
+
+          <p className="total-donations">
+            {data.total} total donations
+          </p>
+        </header>
+
+        <div
+          className="donation-journey"
+          aria-label="Donation progress"
+        >
+          {stages.map((stage) => {
+            const Icon = stage.icon;
+
+            return (
+              <div
+                className="journey-stage"
+                key={stage.label}
+              >
+                <span
+                  className="journey-icon"
+                  aria-hidden="true"
+                >
+                  <Icon size={24} strokeWidth={2} />
+                </span>
+
+                <span className="journey-stage-label">
+                  {stage.label}
+                </span>
+
+                <span className="journey-stage-count">
+                  {stage.count}{" "}
+                  {stage.count === 1 ? "donation" : "donations"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* =================================
+          LOWER DASHBOARD CARDS
+      ================================== */}
+      <div className="donor-dashboard-grid">
+        {/* Recent Donations */}
+        <section
+          className="recent-card dashboard-card"
+          aria-labelledby="recent-heading"
+        >
+          <header className="dashboard-section-header">
+            <div>
+              <p className="section-eyebrow">
+                Recent activity
+              </p>
+
+              <h2
+                id="recent-heading"
+                className="font-serif dashboard-section-title"
+              >
+                Recent donations
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              className="view-all-button"
+              onClick={handleViewAll}
+            >
+              View all
+              <ArrowRight size={16} />
+            </button>
+          </header>
+
+          {data.recent.length === 0 ? (
+            <div className="recent-empty-state">
+              <Sprout
+                className="empty-state-icon"
+                size={38}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+
+              <p>
+                Your recent donations will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="recent-donations-list">
+              {data.recent.slice(0, 4).map((donation) => (
+                <article
+                  className="recent-donation-item"
+                  key={donation.id}
+                >
+                  <div className="recent-donation-icon">
+                    <Sprout size={22} />
+                  </div>
+
+                  <div className="recent-donation-details">
+                    <h3>{donation.foodName}</h3>
+
+                    {donation.quantity != null && (
+                      <p>
+                        Quantity: {donation.quantity}
+                      </p>
+                    )}
+
+                    {donation.createdAt && (
+                      <p>
+                        {new Date(
+                          donation.createdAt
+                        ).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <span className="donation-status">
+                    {donation.status}
+                  </span>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Donation Activity */}
+        <section
+          className="impact-card dashboard-card"
+          aria-labelledby="impact-heading"
+        >
+          <header className="impact-header">
+            <p className="section-eyebrow">
+              Your impact
+            </p>
+
+            <h2
+              id="impact-heading"
+              className="font-serif dashboard-section-title"
+            >
+              Donation activity
+            </h2>
+
+            <p className="impact-description">
+              Donations created over time
+            </p>
+          </header>
+
+          <div
+            className="activity-chart"
+            role="img"
+            aria-label={
+              data.total > 0
+                ? `You have created ${data.total} donations.`
+                : "No donation activity yet."
+            }
+          >
+            {            data.total > 0 ? (
+              <>
+                <div className="activity-bars" aria-hidden="true">
+                  {[
+                    30, 55, 42, 78, 48, 65, 28,
+                  ].map((height, index) => (
+                    <span
+                      className="activity-bar"
+                      key={index}
+                      style={{
+                        height: `${height}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <p className="activity-message">
+                  <Leaf size={18} aria-hidden="true" />
+                  Your donations are making a difference.
+                </p>
+              </>
+            ) : (
+              <>
+                <div
+                  className="activity-bars activity-bars-empty"
+                  aria-hidden="true"
+                >
+                  {[35, 65, 48, 82, 50, 70, 30].map(
+                    (height, index) => (
+                      <span
+                        className="activity-bar"
+                        key={index}
+                        style={{
+                          height: `${height}%`,
+                        }}
+                      />
+                    )
+                  )}
+                </div>
+
+                <p className="activity-message">
+                  <Leaf size={18} aria-hidden="true" />
+                  No activity yet
+                </p>
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }
 
-export default Dashboard;
+function SummaryCard({
+  label,
+  value,
+  detail,
+  icon,
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <article className="summary-card">
+      <div className="summary-card-header">
+        <p>{label}</p>
+        <span aria-hidden="true">{icon}</span>
+      </div>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </article>
+  );
+}

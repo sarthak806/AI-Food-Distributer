@@ -5,7 +5,7 @@ services:
     plan: free
     buildCommand: npm ci --prefix Backend && npm ci --prefix Frontend && VITE_Backend_URL=$RENDER_EXTERNAL_URL npm run build
     startCommand: npm start
-    healthCheckPath: /api/donation/test
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: 20.19.0
@@ -38,4 +38,8 @@ services:
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: VITE_GA4_MEASUREMENT_ID
+        sync: false
+      - key: VITE_PLAUSIBLE_DOMAIN
         sync: false

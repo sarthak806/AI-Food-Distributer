@@ -170,6 +170,7 @@ const OTPVerification = async(req, res)=>{
     res.cookie("token", token, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 12 * 60 * 60 * 1000,
     }).status(200).json({
       success: true,
@@ -242,6 +243,7 @@ const AuthenticateUser = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 12 * 60 * 60 * 1000,
     })
     .status(200)

@@ -1,505 +1,1044 @@
-import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ChangeEvent, FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Textarea } from '@/components/ui/textarea';
-import { Upload, Calendar, MapPin, Pizza, ClipboardList, FileText, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import axios from 'axios';
-import { useAuth } from '@/context/AuthContext';
-import imageCompression from 'browser-image-compression';
-import { useSnackbar } from 'notistack';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  MapPin,
+  ShieldCheck,
+  Upload,
+  X,
+} from "lucide-react";
+import axios from "axios";
+import imageCompression from "browser-image-compression";
+import { useSnackbar } from "notistack";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const MAX_IMAGES = 4;
-const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB in bytes
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
 
-interface SelectedImageItem {
+const categories = [
+  { value: "cooked_meals", label: "Cooked Meals" },
+  { value: "bakery_products", label: "Bakery Products" },
+  { value: "fruits_vegetables", label: "Fruits & Vegetables" },
+  { value: "packaged_food", label: "Packaged Food" },
+  { value: "raw_ingredients", label: "Raw Ingredients" },
+  { value: "dairy_products", label: "Dairy Products" },
+  { value: "other", label: "Other" },
+];
+
+const units = [
+  { value: "servings", label: "Servings" },
+  { value: "kilograms", label: "Kilograms (kg)" },
+  { value: "grams", label: "Grams (g)" },
+  { value: "litres", label: "Litres (L)" },
+  { value: "packets", label: "Packets" },
+  { value: "individual_items", label: "Individual items" },
+];
+
+const dietaryOptions = [
+  "Vegetarian",
+  "Vegan",
+  "Contains meat/fish/egg",
+  "Mixed/multiple",
+  "Not specified",
+];
+
+const storageOptions = [
+  "Refrigerated",
+  "Frozen",
+  "Kept hot",
+  "Room temperature",
+  "Other/unknown",
+];
+
+const packagingOptions = [
+  "Sealed/packaged",
+  "Packed in containers",
+  "Bulk/unpacked",
+  "Other",
+];
+
+interface FormData {
+  name: string;
+  category: string;
+  otherCategory: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  dietaryCategory: string;
+  allergens: string;
+  preparationDate: string;
+  storageCondition: string;
+  otherStorage: string;
+  packagingStatus: string;
+  packagingNotes: string;
+  expirationDate: string;
+  pickupStart: string;
+  pickupEnd: string;
+  pickupLocation: string;
+  pincode: string;
+  address: string;
+  pickupInstructions: string;
+  confirmation: boolean;
+}
+
+interface SelectedImage {
   file: File;
   previewUrl: string;
   id: string;
 }
 
-const DonationForm: React.FC = () => {
+type FormErrors = Partial<Record<keyof FormData | "images", string>>;
+
+const initialFormData: FormData = {
+  name: "",
+  category: "",
+  otherCategory: "",
+  description: "",
+  quantity: "",
+  unit: "servings",
+  dietaryCategory: "Not specified",
+  allergens: "",
+  preparationDate: "",
+  storageCondition: "",
+  otherStorage: "",
+  packagingStatus: "",
+  packagingNotes: "",
+  expirationDate: "",
+  pickupStart: "",
+  pickupEnd: "",
+  pickupLocation: "",
+  pincode: "",
+  address: "",
+  pickupInstructions: "",
+  confirmation: false,
+};
+
+const inputClass = "mt-2 min-h-11 w-full rounded-xl border-[#c9d9c9]";
+
+const DonationForm = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuth();
-
-  const [formData, setFormData] = useState({
-    foodType: '',
-    quantity: '',
-    expirationDate: '',
-    pickupLocation: '',
-    address: '',
-    description: '',
-    name: '',
-  });
-
-  const [selectedImages, setSelectedImages] = useState<SelectedImageItem[]>([]);
-  const [imageError, setImageError] = useState<string>('');
-
-  const [errors, setErrors] = useState({
-    foodType: '',
-    quantity: '',
-    expirationDate: '',
-    pickupLocation: '',
-    address: '',
-    description: '',
-    name: '',
-  });
-
+  const [formData, setFormData] = useState(initialFormData);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [images, setImages] = useState<SelectedImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string>('');
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [isVerifyingPincode, setIsVerifyingPincode] = useState(false);
+  const [pincodeValid, setPincodeValid] = useState<boolean | null>(null);
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes >= 1024 * 1024 * 1024) {
-      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
-    }
-    if (bytes >= 1024 * 1024) {
-      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    }
-    return (bytes / 1024).toFixed(1) + ' KB';
+  const isCookedFood = formData.category === "cooked_meals";
+
+  const updateField = <K extends keyof FormData>(
+    field: K,
+    value: FormData[K],
+  ) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
   };
 
-  const compressImage = async (file: File): Promise<File> => {
-    // If file is smaller than 2MB, no heavy compression needed
-    if (file.size <= 2 * 1024 * 1024) {
-      return file;
+  const verifyPincode = async (value: string) => {
+    const pincode = value.trim();
+
+    if (!/^[1-9][0-9]{5}$/.test(pincode)) {
+      setPincodeValid(false);
+      setErrors((current) => ({
+        ...current,
+        pincode: "Enter a valid six-digit pincode.",
+      }));
+      return false;
     }
 
-    const options = {
-      maxSizeMB: 2,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-      initialQuality: 0.8,
-    };
+    setIsVerifyingPincode(true);
     try {
-      const compressedFile = await imageCompression(file, options);
-      return compressedFile;
-    } catch (error) {
-      console.warn('Image compression fallback, using original file:', error);
-      return file;
+      const response = await axios.get(
+        `${import.meta.env.VITE_Backend_URL}/api/location/pincode/${pincode}`,
+      );
+      const valid = response.data?.valid === true;
+      setPincodeValid(valid);
+      setErrors((current) => ({
+        ...current,
+        pincode: valid
+          ? ""
+          : "Pincode does not exist. Enter a valid pincode.",
+      }));
+      return valid;
+    } catch (requestError) {
+      console.error("Pincode verification failed:", requestError);
+      setPincodeValid(false);
+      setErrors((current) => ({
+        ...current,
+        pincode: "Pincode could not be verified. Please try again.",
+      }));
+      return false;
+    } finally {
+      setIsVerifyingPincode(false);
     }
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
+  const validate = async () => {
+    const nextErrors: FormErrors = {};
+    const quantity = Number(formData.quantity);
+    const expiration = new Date(formData.expirationDate);
+    const pickupStart = new Date(formData.pickupStart);
+    const pickupEnd = new Date(formData.pickupEnd);
 
-    const filesArray = Array.from(e.target.files);
-    const availableSlots = MAX_IMAGES - selectedImages.length;
+    if (!formData.name.trim()) {
+      nextErrors.name = "Enter the name of the food.";
+    }
+    if (!formData.category) {
+      nextErrors.category = "Choose a food category.";
+    }
+    if (formData.category === "other" && !formData.otherCategory.trim()) {
+      nextErrors.otherCategory = "Enter the category name.";
+    }
+    if (!formData.description.trim()) {
+      nextErrors.description = "Describe the food, condition, and packaging.";
+    } else if (formData.description.trim().length > 500) {
+      nextErrors.description = "Keep the description under 500 characters.";
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      nextErrors.quantity = "Enter a quantity greater than zero.";
+    }
+    if (!formData.dietaryCategory) {
+      nextErrors.dietaryCategory = "Choose a dietary category.";
+    }
+    if (!formData.storageCondition) {
+      nextErrors.storageCondition = "Choose a storage condition.";
+    }
+    if (
+      formData.storageCondition === "Other/unknown" &&
+      !formData.otherStorage.trim()
+    ) {
+      nextErrors.otherStorage = "Describe the storage condition.";
+    }
+    if (!formData.packagingStatus) {
+      nextErrors.packagingStatus = "Choose a packaging status.";
+    }
+    if (!formData.expirationDate || Number.isNaN(expiration.getTime())) {
+      nextErrors.expirationDate = "Enter the applicable safety deadline.";
+    } else if (expiration <= new Date()) {
+      nextErrors.expirationDate = "The safety deadline must be in the future.";
+    }
+    if (!formData.pickupStart || Number.isNaN(pickupStart.getTime())) {
+      nextErrors.pickupStart = "Choose when pickup becomes available.";
+    }
+    if (!formData.pickupEnd || Number.isNaN(pickupEnd.getTime())) {
+      nextErrors.pickupEnd = "Choose when pickup availability ends.";
+    } else if (
+      !Number.isNaN(pickupStart.getTime()) &&
+      pickupEnd <= pickupStart
+    ) {
+      nextErrors.pickupEnd =
+        "Pickup end time must be after pickup start time.";
+    }
+    if (
+      !Number.isNaN(expiration.getTime()) &&
+      !Number.isNaN(pickupEnd.getTime()) &&
+      pickupEnd > expiration
+    ) {
+      nextErrors.pickupEnd =
+        "Pickup must end before the safety deadline.";
+    }
+    if (!formData.pickupLocation.trim()) {
+      nextErrors.pickupLocation = "Enter an area or landmark.";
+    }
+    if (!/^[1-9][0-9]{5}$/.test(formData.pincode.trim())) {
+      nextErrors.pincode = "Enter a valid six-digit pincode.";
+    } else if (pincodeValid !== true) {
+      const verified = await verifyPincode(formData.pincode);
+      if (!verified) {
+        nextErrors.pincode =
+          "Pincode does not exist. Enter a valid pincode.";
+      }
+    }
+    if (!formData.address.trim()) {
+      nextErrors.address = "Enter the detailed pickup address.";
+    }
+    if (!formData.confirmation) {
+      nextErrors.confirmation =
+        "Confirm that the information provided is accurate.";
+    }
+    if (images.length > MAX_IMAGES) {
+      nextErrors.images = `Choose no more than ${MAX_IMAGES} images.`;
+    }
 
-    if (availableSlots <= 0) {
-      setImageError(`You can upload a maximum of ${MAX_IMAGES} food images.`);
-      enqueueSnackbar(`Maximum of ${MAX_IMAGES} images allowed.`, { variant: 'warning' });
+    setErrors(nextErrors);
+    return nextErrors;
+  };
+
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const availableSlots = MAX_IMAGES - images.length;
+    const nextImages: SelectedImage[] = [];
+    let imageMessage = "";
+
+    files.slice(0, availableSlots).forEach((file) => {
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        imageMessage = "Use JPG, PNG, or WebP images.";
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        imageMessage = "Each image must be 10 MB or smaller.";
+        return;
+      }
+      nextImages.push({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        id: `${Date.now()}-${Math.random()}`,
+      });
+    });
+
+    if (files.length > availableSlots) {
+      imageMessage = `You can add ${availableSlots} more image${
+        availableSlots === 1 ? "" : "s"
+      }.`;
+    }
+
+    setImages((current) => [...current, ...nextImages]);
+    setErrors((current) => ({ ...current, images: imageMessage }));
+    event.target.value = "";
+  };
+
+  const removeImage = (id: string) => {
+    setImages((current) => {
+      const image = current.find((item) => item.id === id);
+      if (image) {
+        URL.revokeObjectURL(image.previewUrl);
+      }
+      return current.filter((item) => item.id !== id);
+    });
+  };
+
+  const convertImageToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Could not read image."));
+      reader.readAsDataURL(file);
+    });
+
+  const uploadImages = async () => {
+    const urls: string[] = [];
+    for (let index = 0; index < images.length; index += 1) {
+      const image = images[index];
+      setUploadStatus(`Uploading image ${index + 1} of ${images.length}...`);
+      const compressed = await imageCompression(image.file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: 0.8,
+      });
+      const base64Image = await convertImageToBase64(compressed);
+      const response = await axios.post(
+        `${import.meta.env.VITE_Backend_URL}/api/upload`,
+        { base64Image, folder: "donations" },
+        { withCredentials: true, timeout: 60000 },
+      );
+      if (!response.data?.url) {
+        throw new Error(`Image ${index + 1} upload failed.`);
+      }
+      urls.push(response.data.url);
+    }
+    return urls;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const validationErrors = await validate();
+    if (Object.keys(validationErrors).length > 0) {
+      const firstError = Object.keys(validationErrors)[0];
+      document.getElementById(firstError)?.focus();
+      return;
+    }
+    if (!user) {
+      navigate("/user/login");
       return;
     }
 
-    const filesToAdd = filesArray.slice(0, availableSlots);
-    if (filesArray.length > availableSlots) {
-      enqueueSnackbar(`Only ${availableSlots} more image(s) can be added. (Max ${MAX_IMAGES})`, { variant: 'info' });
-    }
-
-    const validNewImages: SelectedImageItem[] = [];
-
-    for (const file of filesToAdd) {
-      // 1GB Max File Size check
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        enqueueSnackbar(`File "${file.name}" exceeds 1GB limit (${formatFileSize(file.size)}).`, { variant: 'error' });
-        continue;
-      }
-
-      const previewUrl = URL.createObjectURL(file);
-      validNewImages.push({
-        file,
-        previewUrl,
-        id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      });
-    }
-
-    if (validNewImages.length > 0) {
-      setSelectedImages((prev) => [...prev, ...validNewImages]);
-      setImageError('');
-    }
-
-    // Reset input value so the same file could be selected again if removed
-    e.target.value = '';
-  };
-
-  const handleRemoveImage = (idToRemove: string) => {
-    setSelectedImages((prev) => {
-      const filtered = prev.filter((img) => img.id !== idToRemove);
-      const removed = prev.find((img) => img.id === idToRemove);
-      if (removed) {
-        URL.revokeObjectURL(removed.previewUrl);
-      }
-      return filtered;
-    });
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: value ? '' : `This field is required` });
-  };
-
-  const convertImageToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowConfirmationDialog(true);
-  };
-
-  const handleConfirmSubmit = async () => {
-    setShowConfirmationDialog(false);
     setIsSubmitting(true);
-    setUploadStatus('Preparing donation details...');
-
     try {
-      if (!user) {
-        enqueueSnackbar('Please login to submit a donation', {
-          variant: 'warning',
-          anchorOrigin: { vertical: 'top', horizontal: 'right' }
-        });
-        navigate('/user/login');
-        return;
-      }
-
-      const uploadedImageUrls: string[] = [];
-
-      if (selectedImages.length > 0) {
-        for (let i = 0; i < selectedImages.length; i++) {
-          setUploadStatus(`Uploading image ${i + 1} of ${selectedImages.length}...`);
-          const item = selectedImages[i];
-          try {
-            const processedFile = await compressImage(item.file);
-            const base64Image = await convertImageToBase64(processedFile);
-            const uploadResponse = await axios.post(
-              `${import.meta.env.VITE_Backend_URL}/api/upload`,
-              { base64Image, folder: 'donations' },
-              { withCredentials: true, timeout: 60000 }
-            );
-
-            if (uploadResponse.data && uploadResponse.data.url) {
-              uploadedImageUrls.push(uploadResponse.data.url);
-            }
-          } catch (uploadErr) {
-            console.error(`Failed to upload image ${i + 1}:`, uploadErr);
-            enqueueSnackbar(`Failed to upload image ${i + 1} (${item.file.name}).`, { variant: 'error' });
-          }
-        }
-      }
-
-      setUploadStatus('Creating donation record...');
-
-      const donationData = {
-        donor: user._id || user.id,
-        foodType: formData.foodType,
-        quantity: parseInt(formData.quantity),
-        expirationDate: new Date(formData.expirationDate).toISOString(),
-        pickupLocation: `${formData.pickupLocation}${formData.address ? ', ' + formData.address : ''}`,
-        description: formData.description,
-        name: formData.name,
-        imageUrl: uploadedImageUrls[0] || '',
-        images: uploadedImageUrls,
-      };
-
-      // Create donation
+      const uploadedImageUrls = await uploadImages();
+      setUploadStatus("Creating donation record...");
+      const categoryLabel =
+        formData.category === "other"
+          ? formData.otherCategory.trim()
+          : categories.find(
+              (category) => category.value === formData.category,
+            )?.label || formData.category;
       const response = await axios.post(
         `${import.meta.env.VITE_Backend_URL}/api/donations/create`,
-        donationData,
-        { withCredentials: true }
+        {
+          name: formData.name.trim(),
+          foodType: categoryLabel,
+          category: formData.category,
+          otherCategory: formData.otherCategory.trim(),
+          description: formData.description.trim(),
+          quantity: Number(formData.quantity),
+          unit: formData.unit,
+          dietaryCategory: formData.dietaryCategory,
+          allergens: formData.allergens.trim() || "Unknown / not provided",
+          preparationDate: formData.preparationDate || undefined,
+          storageCondition: formData.storageCondition,
+          otherStorage: formData.otherStorage.trim(),
+          packagingStatus: formData.packagingStatus,
+          packagingNotes: formData.packagingNotes.trim(),
+          expirationDate: new Date(formData.expirationDate).toISOString(),
+          pickupStart: new Date(formData.pickupStart).toISOString(),
+          pickupEnd: new Date(formData.pickupEnd).toISOString(),
+          pickupLocation:
+            `${formData.pickupLocation.trim()}, ${formData.address.trim()}`,
+          pickupArea: formData.pickupLocation.trim(),
+          pincode: formData.pincode.trim(),
+          address: formData.address.trim(),
+          pickupInstructions: formData.pickupInstructions.trim(),
+          safetyConfirmedAt: new Date().toISOString(),
+          imageUrl: uploadedImageUrls[0] || "",
+          images: uploadedImageUrls,
+        },
+        { withCredentials: true },
       );
 
-      if (response.status === 201 && response.data.data?._id) {
-        const donationId = response.data.data._id;
-        
-        // Match with nearby NGOs
-        try {
-          setUploadStatus('Notifying nearby NGOs...');
-          const matchResponse = await axios.post(
-            `${import.meta.env.VITE_Backend_URL}/api/donations/match-ngos`,
-            {
-              donorId: donationId,
-              pickupLocation: donationData.pickupLocation,
-              expirationDate: donationData.expirationDate
-            },
-            { withCredentials: true }
-          );
-
-          if (matchResponse.data?.matches?.length > 0) {
-            const matchCount = matchResponse.data.matches.length;
-            enqueueSnackbar(
-              `Donation created! Notified ${matchCount} nearby NGO${matchCount > 1 ? 's' : ''}.`,
-              {
-                variant: 'success',
-                anchorOrigin: { vertical: 'top', horizontal: 'right' },
-                autoHideDuration: 5000
-              }
-            );
-          } else {
-            enqueueSnackbar(
-              'Donation created successfully! No nearby NGOs found at the moment.',
-              {
-                variant: 'info',
-                anchorOrigin: { vertical: 'top', horizontal: 'right' },
-                autoHideDuration: 5000
-              }
-            );
-          }
-        } catch (matchError) {
-          console.error('Error matching with NGOs:', matchError);
-        }
-
-        // Clean up object URLs
-        selectedImages.forEach((img) => URL.revokeObjectURL(img.previewUrl));
-
-        // Reset form
-        setFormData({
-          foodType: '',
-          quantity: '',
-          expirationDate: '',
-          pickupLocation: '',
-          address: '',
-          description: '',
-          name: '',
-        });
-        setSelectedImages([]);
-
-        // Navigate to my donations page
-        navigate('/user/Donar/mydonations');
+      if (response.status !== 201 || !response.data?.data?._id) {
+        throw new Error("The donation was not confirmed by the server.");
       }
-    } catch (error: any) {
-      console.error('Donation submission error:', error);
-      const errMsg = error.response?.data?.message || 'Failed to submit donation';
-      enqueueSnackbar(errMsg, {
-        variant: 'error',
-        anchorOrigin: { vertical: 'top', horizontal: 'right' }
+
+      enqueueSnackbar("Donation posted successfully!", {
+        variant: "success",
+      });
+      navigate("/user/Donar/mydonations");
+    } catch (requestError) {
+      console.error("Donation submission error:", requestError);
+      const message = axios.isAxiosError(requestError)
+        ? requestError.response?.data?.message
+        : requestError instanceof Error
+          ? requestError.message
+          : "Could not submit the donation.";
+      enqueueSnackbar(message || "Could not submit the donation.", {
+        variant: "error",
       });
     } finally {
       setIsSubmitting(false);
-      setUploadStatus('');
+      setUploadStatus("");
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 p-6">
-      <Card className="w-full max-w-2xl shadow-2xl border rounded-2xl bg-white p-8">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-3xl font-bold text-center text-gray-800">
-            Donation Form
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {[
-              {
-                label: 'Name of Food',
-                name: 'name',
-                icon: <FileText className="w-5 h-5" />,
-                type: 'text',
-                placeholder: 'e.g., Rice, Curry, Bread, Fruits'
-              },
-              {
-                label: 'Donation Description',
-                name: 'description',
-                icon: <FileText className="w-5 h-5" />,
-                component: Textarea,
-                placeholder: 'Describe the food items, packaging, condition, and any special instructions'
-              },
-              {
-                label: 'Food Type',
-                name: 'foodType',
-                icon: <Pizza className="w-5 h-5" />,
-                placeholder: 'e.g., Cooked Food, Packaged Food, Bakery, Raw Ingredients'
-              },
-              {
-                label: 'Quantity (Servings)',
-                name: 'quantity',
-                icon: <ClipboardList className="w-5 h-5" />,
-                type: 'number',
-                placeholder: 'Number of people it can serve'
-              },
-              {
-                label: 'Expiration Date & Time',
-                name: 'expirationDate',
-                icon: <Calendar className="w-5 h-5" />,
-                type: 'datetime-local'
-              },
-              {
-                label: 'Pickup Location',
-                name: 'pickupLocation',
-                icon: <MapPin className="w-5 h-5" />,
-                placeholder: 'Area / Landmark / Neighborhood'
-              },
-              {
-                label: 'Detailed Address',
-                name: 'address',
-                icon: <MapPin className="w-5 h-5" />,
-                component: Textarea,
-                placeholder: 'Complete street address with apartment/building number'
-              },
-            ].map(({ label, name, icon, type = 'text', component: Component = Input, placeholder }) => (
-              <div key={name} className="space-y-1">
-                <Label htmlFor={name} className="text-lg font-medium flex items-center gap-2 text-gray-700">
-                  {icon} {label}
-                </Label>
-                <Component
-                  id={name}
-                  name={name}
-                  type={type}
-                  value={formData[name as keyof typeof formData] as string}
-                  onChange={handleChange}
-                  placeholder={placeholder}
-                  className="mt-1 w-full border rounded-lg p-3 focus:ring-2 focus:ring-red-400"
-                  required={name !== 'description'}
+    <main className="min-h-screen bg-[#f7faf5] px-4 py-8 md:px-8">
+      <Card className="mx-auto max-w-4xl border-[#dce5dd] shadow-sm">
+        <CardContent className="p-5 sm:p-8">
+          <div className="mb-8">
+            <p className="text-xs font-bold uppercase tracking-[.2em] text-[#17633b]">
+              Share surplus
+            </p>
+            <h1 className="mt-2 font-serif text-4xl font-bold text-[#14231d]">
+              Create a donation
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#536258]">
+              Give NGOs the structured details they need to understand,
+              match, and collect your food donation.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8" noValidate>
+            <FormSection
+              number="01"
+              title="Food details"
+              icon={<FileText />}
+            >
+              <Field
+                id="name"
+                label="Name of food"
+                required
+                error={errors.name}
+              >
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(event) =>
+                    updateField("name", event.target.value)
+                  }
+                  placeholder="e.g., Rice, Dal, Roti, Vegetable Curry"
+                  className={inputClass}
                 />
-                {errors[name as keyof typeof errors] && (
-                  <p className="text-sm text-red-500">{errors[name as keyof typeof errors]}</p>
-                )}
-              </div>
-            ))}
+              </Field>
+              <Field
+                id="category"
+                label="Food category"
+                required
+                error={errors.category}
+              >
+                <select
+                  id="category"
+                  value={formData.category}
+                  onChange={(event) =>
+                    updateField("category", event.target.value)
+                  }
+                  className={inputClass}
+                >
+                  <option value="">Choose a category</option>
+                  {categories.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {formData.category === "other" && (
+                <Field
+                  id="otherCategory"
+                  label="Other category"
+                  required
+                  error={errors.otherCategory}
+                >
+                  <Input
+                    id="otherCategory"
+                    value={formData.otherCategory}
+                    onChange={(event) =>
+                      updateField("otherCategory", event.target.value)
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+              )}
+              <Field
+                id="description"
+                label="Donation description"
+                required
+                helper={`${formData.description.length}/500 · Describe the items, preparation, packaging, and condition.`}
+                error={errors.description}
+                full
+              >
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  maxLength={500}
+                  onChange={(event) =>
+                    updateField("description", event.target.value)
+                  }
+                  placeholder="50 sealed vegetarian meal boxes containing rice, dal, and roti."
+                  className="mt-2 min-h-28 rounded-xl border-[#c9d9c9]"
+                />
+              </Field>
+              <Field
+                id="quantity"
+                label="Quantity"
+                required
+                error={errors.quantity}
+              >
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={formData.quantity}
+                  onChange={(event) =>
+                    updateField("quantity", event.target.value)
+                  }
+                  placeholder="e.g., 50"
+                  className={inputClass}
+                />
+              </Field>
+              <Field id="unit" label="Unit" required>
+                <select
+                  id="unit"
+                  value={formData.unit}
+                  onChange={(event) =>
+                    updateField("unit", event.target.value)
+                  }
+                  className={inputClass}
+                >
+                  {units.map((unit) => (
+                    <option key={unit.value} value={unit.value}>
+                      {unit.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                id="dietaryCategory"
+                label="Dietary category"
+                required
+                error={errors.dietaryCategory}
+              >
+                <select
+                  id="dietaryCategory"
+                  value={formData.dietaryCategory}
+                  onChange={(event) =>
+                    updateField("dietaryCategory", event.target.value)
+                  }
+                  className={inputClass}
+                >
+                  {dietaryOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                id="allergens"
+                label="Allergens and cross-contact notes"
+                helper="Use “Unknown / not provided” if you cannot confirm."
+                full
+              >
+                <Input
+                  id="allergens"
+                  value={formData.allergens}
+                  onChange={(event) =>
+                    updateField("allergens", event.target.value)
+                  }
+                  placeholder="e.g., Contains peanuts; prepared near dairy"
+                  className={inputClass}
+                />
+              </Field>
+            </FormSection>
 
-            {/* Multiple Food Images Upload Section (Up to 4 images, max 1GB each) */}
-            <div className="space-y-2 border-t pt-4">
-              <div className="flex justify-between items-center">
-                <Label className="text-lg font-medium flex items-center gap-2 text-gray-700">
-                  <Upload className="w-5 h-5 text-red-600" /> Food Images ({selectedImages.length}/{MAX_IMAGES})
-                </Label>
-                <span className="text-xs text-muted-foreground bg-gray-100 px-2.5 py-1 rounded-full">
-                  Max 4 images • Up to 1GB each
-                </span>
-              </div>
+            <FormSection
+              number="02"
+              title="Food safety & handling"
+              icon={<ShieldCheck />}
+              note="Share information to help recipients assess the donation. ShareBite does not certify food safety."
+            >
+              {isCookedFood && (
+                <Field
+                  id="preparationDate"
+                  label="Preparation date and time"
+                  helper="Use your local time."
+                >
+                  <Input
+                    id="preparationDate"
+                    type="datetime-local"
+                    value={formData.preparationDate}
+                    onChange={(event) =>
+                      updateField("preparationDate", event.target.value)
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+              )}
+              <Field
+                id="storageCondition"
+                label="Storage condition"
+                required
+                error={errors.storageCondition}
+              >
+                <select
+                  id="storageCondition"
+                  value={formData.storageCondition}
+                  onChange={(event) =>
+                    updateField("storageCondition", event.target.value)
+                  }
+                  className={inputClass}
+                >
+                  <option value="">Choose storage condition</option>
+                  {storageOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              </Field>
+              {formData.storageCondition === "Other/unknown" && (
+                <Field
+                  id="otherStorage"
+                  label="Storage explanation"
+                  required
+                  error={errors.otherStorage}
+                >
+                  <Input
+                    id="otherStorage"
+                    value={formData.otherStorage}
+                    onChange={(event) =>
+                      updateField("otherStorage", event.target.value)
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+              )}
+              <Field
+                id="packagingStatus"
+                label="Packaging status"
+                required
+                error={errors.packagingStatus}
+              >
+                <select
+                  id="packagingStatus"
+                  value={formData.packagingStatus}
+                  onChange={(event) =>
+                    updateField("packagingStatus", event.target.value)
+                  }
+                  className={inputClass}
+                >
+                  <option value="">Choose packaging status</option>
+                  {packagingOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field id="packagingNotes" label="Packaging notes" full>
+                <Input
+                  id="packagingNotes"
+                  value={formData.packagingNotes}
+                  onChange={(event) =>
+                    updateField("packagingNotes", event.target.value)
+                  }
+                  placeholder="e.g., Individual sealed containers"
+                  className={inputClass}
+                />
+              </Field>
+              <Field
+                id="expirationDate"
+                label="Safety deadline or use-by date"
+                required
+                helper="This is not a guarantee that food is safe."
+                error={errors.expirationDate}
+              >
+                <Input
+                  id="expirationDate"
+                  type="datetime-local"
+                  value={formData.expirationDate}
+                  onChange={(event) =>
+                    updateField("expirationDate", event.target.value)
+                  }
+                  className={inputClass}
+                />
+              </Field>
+            </FormSection>
 
-              {/* Upload Input Area */}
-              {selectedImages.length < MAX_IMAGES && (
-                <div className="relative border-2 border-dashed border-gray-300 hover:border-red-400 transition-colors rounded-xl p-4 text-center cursor-pointer bg-gray-50/60 hover:bg-red-50/30">
+            <FormSection
+              number="03"
+              title="Pickup details"
+              icon={<MapPin />}
+            >
+              <Field
+                id="pickupLocation"
+                label="Pickup area or landmark"
+                required
+                error={errors.pickupLocation}
+              >
+                <Input
+                  id="pickupLocation"
+                  value={formData.pickupLocation}
+                  onChange={(event) =>
+                    updateField("pickupLocation", event.target.value)
+                  }
+                  placeholder="Area, landmark, or neighborhood"
+                  className={inputClass}
+                />
+              </Field>
+              <Field
+                id="pincode"
+                label="Pincode"
+                required
+                helper={
+                  isVerifyingPincode
+                    ? "Checking pincode..."
+                    : pincodeValid
+                      ? "Pincode verified."
+                      : "Enter a valid six-digit Indian pincode."
+                }
+                error={errors.pincode}
+              >
+                <Input
+                  id="pincode"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={formData.pincode}
+                  onBlur={() => {
+                    if (formData.pincode) {
+                      void verifyPincode(formData.pincode);
+                    }
+                  }}
+                  onChange={(event) => {
+                    const value = event.target.value.replace(/\D/g, "");
+                    updateField("pincode", value);
+                    setPincodeValid(null);
+                  }}
+                  placeholder="e.g., 411001"
+                  className={`${inputClass} ${
+                    pincodeValid === true
+                      ? "border-green-600 focus-visible:ring-green-600"
+                      : ""
+                  }`}
+                  aria-describedby="pincode-help"
+                />
+              </Field>
+              <Field
+                id="address"
+                label="Detailed pickup address"
+                required
+                error={errors.address}
+              >
+                <Textarea
+                  id="address"
+                  value={formData.address}
+                  onChange={(event) =>
+                    updateField("address", event.target.value)
+                  }
+                  placeholder="Building/shop number, street, area, and nearby landmark"
+                  className="mt-2 min-h-28 rounded-xl border-[#c9d9c9]"
+                />
+              </Field>
+              <Field
+                id="pickupStart"
+                label="Pickup available from"
+                required
+                error={errors.pickupStart}
+              >
+                <Input
+                  id="pickupStart"
+                  type="datetime-local"
+                  value={formData.pickupStart}
+                  onChange={(event) =>
+                    updateField("pickupStart", event.target.value)
+                  }
+                  className={inputClass}
+                />
+              </Field>
+              <Field
+                id="pickupEnd"
+                label="Pickup available until"
+                required
+                error={errors.pickupEnd}
+              >
+                <Input
+                  id="pickupEnd"
+                  type="datetime-local"
+                  value={formData.pickupEnd}
+                  onChange={(event) =>
+                    updateField("pickupEnd", event.target.value)
+                  }
+                  className={inputClass}
+                />
+              </Field>
+              <Field id="pickupInstructions" label="Pickup instructions" full>
+                <Textarea
+                  id="pickupInstructions"
+                  value={formData.pickupInstructions}
+                  onChange={(event) =>
+                    updateField("pickupInstructions", event.target.value)
+                  }
+                  placeholder="e.g., Use the side entrance or call on arrival"
+                  className="mt-2 min-h-24 rounded-xl border-[#c9d9c9]"
+                />
+              </Field>
+            </FormSection>
+
+            <FormSection
+              number="04"
+              title="Photos & confirmation"
+              icon={<ImageIcon />}
+            >
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label
+                    htmlFor="donationImages"
+                    className="flex items-center gap-2 text-sm font-bold"
+                  >
+                    <Upload className="h-4 w-4 text-[#17633b]" />
+                    Add food photos
+                  </Label>
+                  <span className="text-xs text-[#536258]">
+                    {images.length}/{MAX_IMAGES} images
+                  </span>
+                </div>
+                <div
+                  className="relative mt-3 rounded-2xl border-2 border-dashed
+                    border-[#c9d9c9] bg-[#f7faf5] p-6 text-center
+                    transition hover:border-[#17633b] hover:bg-[#eef6eb]"
+                >
                   <input
                     id="donationImages"
-                    name="donationImages"
                     type="file"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.webp"
                     multiple
-                    disabled={isSubmitting}
                     onChange={handleImageSelect}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isSubmitting || images.length === MAX_IMAGES}
+                    className="absolute inset-0 h-full w-full cursor-pointer
+                      opacity-0 disabled:cursor-not-allowed"
                   />
-                  <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
-                    <div className="p-2 bg-red-100 text-red-600 rounded-full">
-                      <ImageIcon className="w-5 h-5" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">
-                      Click or drag images to upload
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PNG, JPG, JPEG, WEBP up to 1GB ({MAX_IMAGES - selectedImages.length} slot{MAX_IMAGES - selectedImages.length > 1 ? 's' : ''} left)
-                    </p>
-                  </div>
+                  <ImageIcon className="mx-auto h-8 w-8 text-[#17633b]" />
+                  <p className="mt-2 text-sm font-bold text-[#14231d]">
+                    Click or drag images to upload
+                  </p>
+                  <p className="mt-1 text-xs text-[#536258]">
+                    JPG, PNG, or WebP · maximum 10 MB each
+                  </p>
                 </div>
-              )}
-
-              {/* Selected Images Preview Grid */}
-              {selectedImages.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  {selectedImages.map((imgItem, index) => (
-                    <div
-                      key={imgItem.id}
-                      className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-sm aspect-square"
-                    >
-                      <img
-                        src={imgItem.previewUrl}
-                        alt={`Food preview ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5 text-white text-[11px]">
+                {errors.images && (
+                  <p className="mt-2 text-sm text-red-700">
+                    {errors.images}
+                  </p>
+                )}
+                {images.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {images.map((image, index) => (
+                      <div
+                        key={image.id}
+                        className="group relative aspect-square
+                          overflow-hidden rounded-xl border border-[#dce5dd]"
+                      >
+                        <img
+                          src={image.previewUrl}
+                          alt={`Donation preview ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
                         <button
                           type="button"
-                          onClick={() => handleRemoveImage(imgItem.id)}
-                          className="self-end bg-red-600 hover:bg-red-700 text-white rounded-full p-1 transition-transform hover:scale-110"
-                          title="Remove image"
+                          aria-label={`Remove image ${index + 1}`}
+                          onClick={() => removeImage(image.id)}
+                          className="absolute right-2 top-2 grid h-8 w-8
+                            place-items-center rounded-full bg-red-600
+                            text-white opacity-0 transition group-hover:opacity-100"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="h-4 w-4" />
                         </button>
-                        <div className="bg-black/60 px-1.5 py-0.5 rounded truncate text-center">
-                          {formatFileSize(imgItem.file.size)}
-                        </div>
                       </div>
-                      {index === 0 && (
-                        <span className="absolute bottom-1 left-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
-                          Primary
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <label
+                className="flex cursor-pointer items-start gap-3 rounded-2xl
+                  border border-[#dce5dd] bg-[#f7faf5] p-4 sm:col-span-2"
+              >
+                <input
+                  id="confirmation"
+                  type="checkbox"
+                  checked={formData.confirmation}
+                  onChange={(event) =>
+                    updateField("confirmation", event.target.checked)
+                  }
+                  className="mt-1 h-5 w-5 accent-[#17633b]"
+                />
+                <span className="text-sm leading-6 text-[#536258]">
+                  I confirm that the information provided is accurate and
+                  that I have followed applicable food-handling guidance.
+                </span>
+              </label>
+              {errors.confirmation && (
+                <p className="text-sm text-red-700 sm:col-span-2">
+                  {errors.confirmation}
+                </p>
               )}
+            </FormSection>
 
-              {imageError && <p className="text-sm text-red-500">{imageError}</p>}
-            </div>
-
-            <div className="flex flex-col items-center justify-center pt-4 gap-2">
+            <div className="flex flex-col items-center gap-3 border-t
+              border-[#dce5dd] pt-6 sm:flex-row sm:justify-end"
+            >
+              {uploadStatus && (
+                <p className="text-sm text-[#536258]">{uploadStatus}</p>
+              )}
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white text-lg py-3 px-8 rounded-xl shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                className="min-h-11 w-full rounded-full bg-[#17633b]
+                  px-7 text-white transition hover:-translate-y-0.5
+                  hover:bg-[#22784a] hover:shadow-lg sm:w-auto"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {uploadStatus || 'Submitting Donation...'}
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Posting donation...
                   </>
                 ) : (
-                  'Confirm Donation'
+                  "Post donation"
                 )}
               </Button>
-              {isSubmitting && uploadStatus && (
-                <p className="text-xs text-muted-foreground animate-pulse">{uploadStatus}</p>
-              )}
             </div>
           </form>
         </CardContent>
       </Card>
-
-      {/* Shadcn UI Confirmation Dialog */}
-      <AlertDialog open={showConfirmationDialog} onOpenChange={setShowConfirmationDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Donation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to submit this donation with {selectedImages.length} food image{selectedImages.length === 1 ? '' : 's'}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowConfirmationDialog(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmSubmit} className="bg-red-600 hover:bg-red-500 text-white">
-              Confirm & Submit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    </main>
   );
 };
+
+function FormSection({
+  number,
+  title,
+  icon,
+  note,
+  children,
+}: {
+  number: string;
+  title: string;
+  icon: React.ReactNode;
+  note?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-[#dce5dd] bg-white p-5
+      sm:p-6"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center
+          rounded-xl bg-[#eef6eb] text-[#17633b]"
+        >
+          {icon}
+        </span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[.18em]
+            text-[#17633b]"
+          >
+            Section {number}
+          </p>
+          <h2 className="mt-1 font-serif text-2xl font-bold text-[#14231d]">
+            {title}
+          </h2>
+          {note && (
+            <p className="mt-2 text-xs leading-5 text-[#536258]">
+              {note}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="mt-6 grid gap-5 md:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  id,
+  label,
+  required = false,
+  helper,
+  error,
+  full = false,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  helper?: string;
+  error?: string;
+  full?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={full ? "md:col-span-2" : ""}>
+      <Label htmlFor={id} className="text-sm font-bold text-[#14231d]">
+        {label} {required && <span aria-hidden="true">*</span>}
+      </Label>
+      {children}
+      {helper && !error && (
+        <p className="mt-1 text-xs leading-5 text-[#536258]">{helper}</p>
+      )}
+      {error && (
+        <p id={`${id}-error`} className="mt-1 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default DonationForm;

@@ -1,4 +1,4 @@
-import {BrowserRouter as  Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import ProtectedRoutes from './ProtectedRoutes';
 import ProtectedApp from "./ProtectAPP";
 
@@ -10,17 +10,8 @@ import Register from "../components/common/SignUpForm";
 import ForgotPassword from "../components/common/ForgotPassword";
 
 // Import Dashboard Components
-import AdminDashboard from "../Pages/AdminDashboard";
 import NGODashboard from "../Pages/NGODashboard";
 import DonarDashboard from "../Pages/DonarDashboard";
-
-// Admin Dashboard Components
-import Dashboard from "../Dashboard/Admin/Analytics";
-import NgoRegistration from "../Dashboard/Admin/NgoManagementDashboard";
-import ActiveUser from "../Dashboard/Admin/UserList";
-import DonationManagement from "../Dashboard/Admin/DonationManagement";
-import ContentManagement  from "../Dashboard/Admin/ContentManagement";
-import ReviewAdmin from "../Dashboard/Admin/Reviewadmin";
 
 // Donar Dashboard Components
 import DonarDash from "../Dashboard/Donar/Dashboard";
@@ -43,6 +34,12 @@ import Provider from "../Dashboard/ngo/Provider";
 import Profile from '../Dashboard/common/Profile';
 import Review from "../Dashboard/ngo/Review";
 import Contact from "../Dashboard/common/Contact";
+import LegalPage from "../Pages/LegalPage";
+import NotFoundPage from "../Pages/NotFoundPage";
+import AdminLogin from "../admin/AdminLogin";
+import AdminConsole from "../admin/AdminConsole";
+import AdminOverview from "../admin/AdminOverview";
+import AdminPlaceholder from "../admin/AdminPlaceholder";
 
 function App(){
 
@@ -50,27 +47,22 @@ function App(){
       <Routes>
         <Route element={<ProtectedApp />}>
             <Route index element={<LandingPage />} />
+            <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+            <Route path="/terms" element={<LegalPage kind="terms" />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminConsole />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="ngo-requests" element={<AdminPlaceholder />} />
+              <Route path="users" element={<AdminPlaceholder />} />
+              <Route path="donations" element={<AdminPlaceholder />} />
+              <Route path="reports" element={<AdminPlaceholder />} />
+            </Route>
 
             <Route path="/user" element={<LoginRegister />}>
             <Route path="login" element={<Login />} />
             <Route path="signup" element={<Register />} />
             <Route path="forgotPassword" element={<ForgotPassword />} />
             </Route>
-
-            <Route element={<ProtectedRoutes allowedRoles={["Admin"]} />}>
-                <Route path="/user/Admin" element={<AdminDashboard />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path='ngomanagement' element={<NgoRegistration />} />
-                    <Route path='donationmanagement' element={<DonationManagement />} />
-                    <Route path='userList' element={<ActiveUser/>} />
-                    <Route path='contentManagement' element={<ContentManagement />} />
-
-                    //<Route path='Reviewdonar' element={<Reviewdonar/>}/>
-                    <Route path='Reviewadmin' element={<ReviewAdmin />} />
-
-                </Route>
-            </Route>
-            
 
             <Route element={<ProtectedRoutes allowedRoles={["NGO"]} />}>
                 <Route path="/user/NGO" element={<NGODashboard />}>
@@ -95,10 +87,6 @@ function App(){
                     <Route path='donationForm' element={<DonationForm/>}/>
                     <Route path='notification' element={<Notification/>}/>
                     <Route path='donationactivity' element={<Donationactivity/>}/>
-                    
-                    
-                    <Route index element={<NGODash />} />
-
                     {/* User Profile  */}
                     <Route path="id/:userId" element={<Profile />} />
                     <Route path="contact" element={<Contact />} />
@@ -107,6 +95,7 @@ function App(){
             </Route>
 
             </Route>
+            <Route path="*" element={<NotFoundPage />} />
 
       </Routes>
  )
