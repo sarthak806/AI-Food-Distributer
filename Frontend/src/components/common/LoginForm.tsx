@@ -43,7 +43,6 @@ export default function LoginForm({
       if (response.data.user) setUser(response.data.user);
       enqueueSnackbar("You're in.", { variant: "success" });
       await fetchUserData();
-      navigate(`/user/${response.data.user?.role || "Donar"}`);
     } catch (error: unknown) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || "That didn't work — try again."
@@ -55,8 +54,10 @@ export default function LoginForm({
   };
 
   useEffect(() => {
-    if (user?.role) navigate(`/user/${user.role}`);
-  }, [user, navigate]);
+    if (!loading && user?.role) {
+      navigate(`/user/${user.role}`, { replace: true });
+    }
+  }, [loading, user, navigate]);
 
   // magnetic button — nudges toward the cursor within its own bounds
   const handleBtnMove = (e: React.MouseEvent<HTMLButtonElement>) => {
