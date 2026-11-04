@@ -36,6 +36,7 @@ type MenuItem = BaseMenuItem | SubMenuItem;
 
 interface AdminData {
     navMenu: MenuItem[];
+    roleLabel?: string;
 }
 
 interface UserDashboardProps {
@@ -56,8 +57,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ data }) => {
                         <Breadcrumb>
                             <BreadcrumbList>
                                 <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="/user/Donar">
-                                        Donor
+                                    <BreadcrumbLink href={data.roleLabel === "NGO" ? "/user/NGO" : "/user/Donar"}>
+                                        {data.roleLabel || "Donor"}
                                     </BreadcrumbLink>
                                 </BreadcrumbItem>
                                 <BreadcrumbSeparator className="hidden md:block" />

@@ -30,6 +30,7 @@ import Donations from "../Dashboard/ngo/Donations/MyDonations";
 import TrackDonations from "../Dashboard/ngo/Donations/TrackDonations";
 import Donor from "@/Dashboard/ngo/Donor";
 import Provider from "../Dashboard/ngo/Provider";
+import NGOOperations from "../Dashboard/ngo/NGOOperations";
 
 import Profile from '../Dashboard/common/Profile';
 import Review from "../Dashboard/ngo/Review";
@@ -40,6 +41,7 @@ import AdminLogin from "../admin/AdminLogin";
 import AdminConsole from "../admin/AdminConsole";
 import AdminOverview from "../admin/AdminOverview";
 import AdminPlaceholder from "../admin/AdminPlaceholder";
+import NgoRequests from "../admin/NgoRequests";
 
 function App(){
 
@@ -52,7 +54,7 @@ function App(){
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminConsole />}>
               <Route index element={<AdminOverview />} />
-              <Route path="ngo-requests" element={<AdminPlaceholder />} />
+              <Route path="ngo-requests" element={<NgoRequests />} />
               <Route path="users" element={<AdminPlaceholder />} />
               <Route path="donations" element={<AdminPlaceholder />} />
               <Route path="reports" element={<AdminPlaceholder />} />
@@ -72,6 +74,12 @@ function App(){
                     <Route path="donationhistory" element={<Donations />} />
                     <Route path="allDonor" element={<Donor />} />
                     <Route path="provider" element={<Provider/>}/>
+                    <Route path="inventory" element={<NGOOperations section="inventory" />} />
+                    <Route path="requests" element={<NGOOperations section="requests" />} />
+                    <Route path="distribution" element={<NGOOperations section="distribution" />} />
+                    <Route path="reports" element={<NGOOperations section="reports" />} />
+                    <Route path="team" element={<NGOOperations section="team" />} />
+                    <Route path="messages" element={<NGOOperations section="messages" />} />
                     {/* User Profiles */}
                     <Route path="id/:userId" element={<Profile />} />
                     <Route path="reviews" element={<Review />} />

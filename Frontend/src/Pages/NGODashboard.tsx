@@ -7,8 +7,12 @@ import { AlertCircle } from 'lucide-react';
 import { 
     LayoutDashboard,
     ListChecks,
-    HandPlatter,
-    Star,
+    CalendarDays,
+    Warehouse,
+    BarChart3,
+    Users,
+    MessageSquare,
+    HeartHandshake,
 } from "lucide-react";
 
 
@@ -17,47 +21,67 @@ const NGODashboard: React.FC = () => {
     console.log(user);
 
     const NGO = {
-        navMenu: [
+      roleLabel: "NGO",
+      navMenu: [
             {
                 name: "Dashboard",
                 url: "/user/NGO",
                 icon: LayoutDashboard, 
             },
-            { 
-                name: "Listings", 
-                url: "/user/NGO/listings", 
+            {
+                name: "Find Donations",
+                url: "/user/NGO/listings",
                 icon: ListChecks,
             },
             {
-                title: "Donations",
+                title: "Pickup Operations",
                 url: "#",
-                icon: HandPlatter,
-                isActive: false,
+                icon: CalendarDays,
+                isActive: true,
                 items:[
                     {
-                        title:"Track Donations",
+                        title:"Pickup Schedule",
                         url:'/user/NGO/trackdonations'
                     },
                     {
-                        title:"Donation History",
-                        url:'/user/NGO/donationHistory'
+                        title:"Completed Pickups",
+                        url:'/user/NGO/donationhistory'
                     },
                 ],
-                
             },
             {
-                name: "Near Recycling Partners",
-                url: "/user/ngo/allDonor",
-                icon: Star,
+                title: "Community",
+                url: "#",
+                icon: HeartHandshake,
+                isActive: false,
+                items: [
+                    { title: "Food Requests", url: "/user/NGO/requests" },
+                    { title: "Distribution Log", url: "/user/NGO/distribution" },
+                    { title: "Donor Network", url: "/user/NGO/allDonor" },
+                ],
             },
             {
-                name: "Donar",
-                url: "/user/ngo/allDonor",
-                icon: Star,
+                name: "Inventory",
+                url: "/user/NGO/inventory",
+                icon: Warehouse,
+            },
+            {
+                name: "Impact Reports",
+                url: "/user/NGO/reports",
+                icon: BarChart3,
+            },
+            {
+                name: "Team & Volunteers",
+                url: "/user/NGO/team",
+                icon: Users,
+            },
+            {
+                name: "Messages",
+                url: "/user/NGO/messages",
+                icon: MessageSquare,
             },
         ],
       };
-
   return (
     <>
       {
