@@ -13,6 +13,15 @@ const { verifyIndianPincode } = require("../utils/pincode");
 
 require("dotenv").config();
 
+const geocodeWithNominatim = async (address) => {
+  const response = await axios.get(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${encodeURIComponent(address)}`,
+    { headers: { "User-Agent": "SharePlate/1.0 donation-matching" } }
+  );
+  const result = response.data?.[0];
+  if (!result) return null;
+  return { lat: Number(result.lat), lng: Number(result.lon) };
+};
 
 const getMatchNgos = async (req, res) => {
   try {
@@ -29,20 +38,16 @@ const getMatchNgos = async (req, res) => {
     const ngos = await User.find({ role: "NGO" }).select("email location");
 
     console.log("matching ngo fetch", ngos);
-    // Convert pickup location to lat/lng using Google Geocoding API
-    const geocodeResponse = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-        donor.pickupLocation
-      )}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-    );
-
-    if (!geocodeResponse.data.results || geocodeResponse.data.results.length === 0) {
-      console.error("No results found for address:", donor.pickupLocation);
-      throw new Error("No results found for address");
+    const savedDonorCoordinates =
+      Number.isFinite(donor.pickupLatitude) && Number.isFinite(donor.pickupLongitude)
+        ? { lat: donor.pickupLatitude, lng: donor.pickupLongitude }
+        : null;
+    const donorCoordinates = savedDonorCoordinates ||
+      await geocodeWithNominatim(donor.pickupLocation);
+    if (!donorCoordinates) {
+      throw new Error("No coordinates found for pickup location");
     }
-
-    const { lat: donorLat, lng: donorLng } =
-      geocodeResponse.data.results[0].geometry.location;
+    const { lat: donorLat, lng: donorLng } = donorCoordinates;
 
     // Current date
     const currentDate = new Date();
@@ -53,20 +58,12 @@ const getMatchNgos = async (req, res) => {
     // Match NGOs
     const matches = await Promise.all(
       ngos.map(async (ngo) => {
-        // Convert NGO location to lat/lng using Google Geocoding API
-        const ngoGeocodeResponse = await axios.get(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-            ngo.location
-          )}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-        );
-
-        if (!ngoGeocodeResponse.data.results || ngoGeocodeResponse.data.results.length === 0) {
+        const ngoCoordinates = await geocodeWithNominatim(ngo.location);
+        if (!ngoCoordinates) {
           console.error("No results found for NGO address:", ngo.location);
           return null; // Skip this NGO
         }
-
-        const { lat: ngoLat, lng: ngoLng } =
-          ngoGeocodeResponse.data.results[0].geometry.location;
+        const { lat: ngoLat, lng: ngoLng } = ngoCoordinates;
 
         // Calculate distance
         const distance = calculateDistance(donorLat, donorLng, ngoLat, ngoLng);
@@ -286,6 +283,16 @@ const createDonation = async (req, res) => {
       !req.body.pickupArea?.trim() ||
       !/^[1-9][0-9]{5}$/.test(String(req.body.pincode || '')) ||
       !req.body.address?.trim() ||
+      !req.body.buildingNumber?.trim() ||
+      !req.body.streetArea?.trim() ||
+      !req.body.city?.trim() ||
+      !req.body.state?.trim() ||
+      !Number.isFinite(Number(req.body.pickupLatitude)) ||
+      !Number.isFinite(Number(req.body.pickupLongitude)) ||
+      Number(req.body.pickupLatitude) < -90 ||
+      Number(req.body.pickupLatitude) > 90 ||
+      Number(req.body.pickupLongitude) < -180 ||
+      Number(req.body.pickupLongitude) > 180 ||
       !req.body.safetyConfirmedAt
     ) {
       return res.status(400).json({
@@ -338,9 +345,21 @@ const createDonation = async (req, res) => {
       pickupStart,
       pickupEnd,
       pickupLocation: req.body.pickupLocation,
+      pickupLatitude: Number.isFinite(Number(req.body.pickupLatitude))
+        ? Number(req.body.pickupLatitude)
+        : undefined,
+      pickupLongitude: Number.isFinite(Number(req.body.pickupLongitude))
+        ? Number(req.body.pickupLongitude)
+        : undefined,
       pickupArea: req.body.pickupArea,
       pincode: String(req.body.pincode),
       address: req.body.address,
+      buildingNumber: req.body.buildingNumber.trim(),
+      streetArea: req.body.streetArea.trim(),
+      landmark: req.body.landmark?.trim() || '',
+      city: req.body.city.trim(),
+      state: req.body.state.trim(),
+      pickupPlaceId: req.body.pickupPlaceId?.trim() || '',
       pickupInstructions: req.body.pickupInstructions,
       safetyConfirmedAt: new Date(req.body.safetyConfirmedAt),
       name: req.body.name,
@@ -419,21 +438,30 @@ const addDonationToUser = async (req, res) => {
 
     donation.receiver = userId;
     donation.status = "accepted";
+    await donation.save();
 
     const userDonor = await User.findById(donation.donor);
 
-    // Send OTP via email
-    const subject = 'Shareplat - Your Donation Accepted';
-    const text = `Your Donation of ${donation.description}, was reserved by NGO`;
-    const htmlBody = `<h1>Your Donation of ${donation.description}, was reserved by NGO</h1>`;
+    let notificationSent = false;
+    try {
+      if (!userDonor?.email) {
+        throw new Error("Donor email is unavailable");
+      }
 
-    await sendEmail(userDonor.email, subject, text, htmlBody);
+      const subject = 'Shareplat - Your Donation Accepted';
+      const text = `Your Donation of ${donation.description}, was reserved by NGO`;
+      const htmlBody = `<h1>Your Donation of ${donation.description}, was reserved by NGO</h1>`;
 
-    donation.save();
+      await sendEmail(userDonor.email, subject, text, htmlBody);
+      notificationSent = true;
+    } catch (emailError) {
+      console.error("Donation was reserved, but donor notification failed:", emailError);
+    }
 
     res.status(200).json({ 
       success:true,
       message: "Donation assigned successfully",
+      notificationSent,
     });
   } 
   catch (error) {
@@ -636,6 +664,16 @@ const generateDeliveryOTP = async (req, res) => {
       });
     }
 
+    if (donation.otp && donation.otpExpires && donation.otpExpires.getTime() > Date.now()) {
+      return res.status(200).json({
+        success: true,
+        message: "An active OTP already exists for this donation",
+        otp: donation.otp,
+        expiresAt: donation.otpExpires,
+        notificationSent: false,
+      });
+    }
+
     // Generate a 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
@@ -678,19 +716,27 @@ const generateDeliveryOTP = async (req, res) => {
       </html>
     `;
 
-    // Send OTP email to NGO
-    await sendEmail(
-      donation.receiver.email,
-      emailSubject,
-      textContent,
-      htmlContent
-    );
+    let notificationSent = false;
+    try {
+      await sendEmail(
+        donation.receiver.email,
+        emailSubject,
+        textContent,
+        htmlContent
+      );
+      notificationSent = true;
+    } catch (emailError) {
+      console.error("OTP was generated, but NGO notification failed:", emailError);
+    }
 
     res.status(200).json({
       success: true,
-      message: "OTP generated and sent to NGO",
+      message: notificationSent
+        ? "OTP generated and sent to NGO"
+        : "OTP generated. Email notification could not be sent.",
       otp: otp,
-      expiresAt: otpExpires
+      expiresAt: otpExpires,
+      notificationSent,
     });
 
   } catch (error) {
@@ -698,7 +744,8 @@ const generateDeliveryOTP = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error generating OTP",
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
@@ -706,7 +753,7 @@ const generateDeliveryOTP = async (req, res) => {
 const verifyDeliveryOTP = async (req, res) => {
   try {
     const { donationId } = req.params;
-    const { otp } = req.body;
+    const submittedOtp = String(req.body.otp || "").trim();
     const userId = req.user.id;
 
     const donation = await Donation.findOne({
@@ -736,7 +783,7 @@ const verifyDeliveryOTP = async (req, res) => {
       });
     }
 
-    if (donation.otp !== otp) {
+    if (String(donation.otp).trim() !== submittedOtp) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP"

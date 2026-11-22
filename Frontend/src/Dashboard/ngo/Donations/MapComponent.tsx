@@ -1,157 +1,99 @@
-import React, { useEffect, useState } from 'react';
-import {
-  useJsApiLoader,
-  GoogleMap,
-  DirectionsRenderer,
-} from '@react-google-maps/api';
-
-// Move libraries array outside the component to avoid reloading
-const libraries = ['places', 'marker']; // Add 'marker' for AdvancedMarkerElement
+import { useEffect, useState } from "react";
+import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
+import L from "leaflet";
+import { Loader2, MapPin } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
 interface MapComponentProps {
-  origin: string; // Pass address as a string
-  destination: string; // Pass address as a string
+  origin: string;
+  destination: string;
 }
 
-function MapComponent({ origin, destination }: MapComponentProps) {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, // Replace with your actual API key
-    libraries, // Use the constant libraries array
-  });
+type Coordinates = [number, number];
 
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
-  const [distance, setDistance] = useState<string>('');
-  const [duration, setDuration] = useState<string>('');
-  const [center, setCenter] = useState<google.maps.LatLngLiteral | null>(null); // Dynamic center
+const markerIcon = L.divIcon({
+  className: "",
+  html: '<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:#17633b;border:3px solid white;box-shadow:0 2px 8px #0005;transform:rotate(-45deg)"></div>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 30],
+});
+
+function FitRoute({ points }: { points: Coordinates[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points.length > 1) map.fitBounds(points, { padding: [30, 30] });
+  }, [map, points]);
+  return null;
+}
+
+async function findCoordinates(address: string): Promise<Coordinates> {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${encodeURIComponent(address)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) throw new Error(`Could not find ${address}`);
+  const results = await response.json() as Array<{ lat: string; lon: string }>;
+  if (!results[0]) throw new Error(`Could not find ${address}`);
+  return [Number(results[0].lat), Number(results[0].lon)];
+}
+
+export default function MapComponent({ origin, destination }: MapComponentProps) {
+  const [points, setPoints] = useState<Coordinates[]>([]);
+  const [distance, setDistance] = useState("");
+  const [duration, setDuration] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isLoaded && origin && destination) {
-      calculateRoute(origin, destination);
-    }
-  }, [isLoaded, origin, destination]);
+    let active = true;
+    const loadRoute = async () => {
+      try {
+        setError("");
+        const [start, end] = await Promise.all([
+          findCoordinates(origin),
+          findCoordinates(destination),
+        ]);
+        if (!active) return;
+        const routeResponse = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`,
+        );
+        if (!routeResponse.ok) throw new Error("Route service unavailable");
+        const routeData = await routeResponse.json() as {
+          routes?: Array<{ distance: number; duration: number; geometry: { coordinates: [number, number][] } }>;
+        };
+        const route = routeData.routes?.[0];
+        if (!route) throw new Error("No route found");
+        setPoints(route.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude]));
+        setDistance(`${(route.distance / 1000).toFixed(1)} km`);
+        setDuration(`${Math.round(route.duration / 60)} min`);
+      } catch (routeError) {
+        console.error("OpenStreetMap route loading failed:", routeError);
+        if (active) setError("Could not calculate this route. The pickup address can still be opened in a map app.");
+      }
+    };
+    void loadRoute();
+    return () => { active = false; };
+  }, [origin, destination]);
 
-  async function getCoordinates(address: string): Promise<google.maps.LatLngLiteral> {
-    const geocoder = new window.google.maps.Geocoder();
-    return new Promise((resolve, reject) => {
-      geocoder.geocode({ address }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const location = results[0].geometry.location;
-          resolve({ lat: location.lat(), lng: location.lng() });
-        } else {
-          reject(new Error('Geocoding failed: ' + status));
-        }
-      });
-    });
+  if (error) {
+    return <div className="flex h-[400px] flex-col items-center justify-center rounded-xl bg-[#fff7f2] p-6 text-center text-[#8d4a36]"><MapPin size={28} /><p className="mt-3 text-sm">{error}</p></div>;
   }
-
-  async function calculateRoute(origin: string, destination: string) {
-    if (!window.google || !window.google.maps || !window.google.maps.DirectionsService) {
-      console.error('Google Maps API is not fully loaded.');
-      return;
-    }
-
-    try {
-      // Convert origin and destination addresses to coordinates
-      const originCoords = await getCoordinates(origin);
-      const destinationCoords = await getCoordinates(destination);
-
-      // Set the center of the map to the origin coordinates
-      setCenter(originCoords);
-
-      const directionsService = new window.google.maps.DirectionsService();
-      const results = await directionsService.route({
-        origin: originCoords,
-        destination: destinationCoords,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      });
-
-      setDirectionsResponse(results);
-      setDistance(results.routes[0].legs[0].distance.text);
-      setDuration(results.routes[0].legs[0].duration.text);
-    } catch (error) {
-      console.error('Error calculating route:', error);
-    }
-  }
-
-  if (!isLoaded) {
-    return <div>Loading...</div>; // Simple loading message
+  if (points.length < 2) {
+    return <div className="flex h-[400px] items-center justify-center rounded-xl bg-[#f7faf5] text-[#536258]"><Loader2 className="mr-2 animate-spin" size={20} /> Loading route...</div>;
   }
 
   return (
-    <div className="relative w-full h-[400px]">
-      {/* Google Map Container */}
-      <GoogleMap
-        center={center || { lat: 0, lng: 0 }} // Fallback to {0, 0} if center is not set
-        zoom={12}
-        mapContainerStyle={{ width: '100%', height: '100%' }}
-        options={{
-          zoomControl: true,
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          mapId: 'YOUR_MAP_ID', // Add your Map ID here
-        }}
-        onLoad={(map) => setMap(map)}
-      >
-        {/* Use AdvancedMarkerElement instead of Marker */}
-        {directionsResponse && (
-          <>
-            <DirectionsRenderer directions={directionsResponse} />
-            {/* Example of AdvancedMarkerElement */}
-            {window.google && window.google.maps && (
-              <AdvancedMarkerElement
-                position={center || { lat: 0, lng: 0 }} // Fallback to {0, 0} if center is not set
-                map={map}
-                title="Default Marker"
-              />
-            )}
-          </>
-        )}
-      </GoogleMap>
-
-      {/* Distance & Duration Display */}
-      {distance && duration && (
-        <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md">
-          <p className="text-lg">
-            <strong>Distance:</strong> {distance}
-          </p>
-          <p className="text-lg">
-            <strong>Duration:</strong> {duration}
-          </p>
-        </div>
-      )}
+    <div className="relative h-[400px] overflow-hidden rounded-xl">
+      <MapContainer center={points[0]} zoom={13} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
+        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <FitRoute points={[points[0], points[points.length - 1]]} />
+        <Marker position={points[0]} icon={markerIcon} title="NGO location" />
+        <CircleMarker center={points[points.length - 1]} radius={9} pathOptions={{ color: "#dc2626", fillColor: "#f87171", fillOpacity: 1 }} />
+        <Polyline positions={points} pathOptions={{ color: "#17633b", weight: 5 }} />
+      </MapContainer>
+      <div className="absolute bottom-4 left-4 z-[500] rounded-xl bg-white p-3 text-sm shadow">
+        <p><strong>Distance:</strong> {distance}</p>
+        <p><strong>Estimated drive:</strong> {duration}</p>
+      </div>
     </div>
   );
 }
-
-// AdvancedMarkerElement Component
-const AdvancedMarkerElement = ({ position, map, title }: {
-  position: google.maps.LatLngLiteral;
-  map: google.maps.Map;
-  title: string;
-}) => {
-  const [marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
-
-  useEffect(() => {
-    if (window.google && window.google.maps && window.google.maps.marker) {
-      const advancedMarker = new window.google.maps.marker.AdvancedMarkerElement({
-        position,
-        map,
-        title,
-      });
-      setMarker(advancedMarker);
-
-      // Cleanup
-      return () => {
-        if (marker) {
-          marker.map = null; // Remove marker from the map
-        }
-      };
-    }
-  }, [position, map, title]);
-
-  return null; // AdvancedMarkerElement is managed by Google Maps API
-};
-
-export default MapComponent;

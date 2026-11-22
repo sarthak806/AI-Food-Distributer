@@ -18,6 +18,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PickupLocationPicker, {
+  PickupLocationDetails,
+} from "./PickupLocationPicker";
 
 const MAX_IMAGES = 4;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -87,6 +90,11 @@ interface FormData {
   pickupStart: string;
   pickupEnd: string;
   pickupLocation: string;
+  buildingNumber: string;
+  streetArea: string;
+  landmark: string;
+  city: string;
+  state: string;
   pincode: string;
   address: string;
   pickupInstructions: string;
@@ -97,6 +105,16 @@ interface SelectedImage {
   file: File;
   previewUrl: string;
   id: string;
+}
+
+interface ImageAnalysis {
+  status: "complete" | "unavailable";
+  isFood: boolean | null;
+  appearsAiGenerated: boolean | null;
+  freshness: "appears_fresh" | "questionable" | "spoiled_looking" | "unknown";
+  confidence: number | null;
+  notes: string[];
+  reason?: string;
 }
 
 type FormErrors = Partial<Record<keyof FormData | "images", string>>;
@@ -119,6 +137,11 @@ const initialFormData: FormData = {
   pickupStart: "",
   pickupEnd: "",
   pickupLocation: "",
+  buildingNumber: "",
+  streetArea: "",
+  landmark: "",
+  city: "",
+  state: "",
   pincode: "",
   address: "",
   pickupInstructions: "",
@@ -136,8 +159,14 @@ const DonationForm = () => {
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [imageAnalysisWarnings, setImageAnalysisWarnings] = useState<string[]>([]);
+  const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
   const [isVerifyingPincode, setIsVerifyingPincode] = useState(false);
   const [pincodeValid, setPincodeValid] = useState<boolean | null>(null);
+  const [pickupDetails, setPickupDetails] =
+    useState<PickupLocationDetails | null>(null);
+  const [locationConfirmed, setLocationConfirmed] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
 
   const isCookedFood = formData.category === "cooked_meals";
 
@@ -267,6 +296,25 @@ const DonationForm = () => {
     if (!formData.address.trim()) {
       nextErrors.address = "Enter the detailed pickup address.";
     }
+    if (!formData.buildingNumber.trim()) {
+      nextErrors.buildingNumber = "Enter the building or shop number.";
+    }
+    if (!formData.streetArea.trim()) {
+      nextErrors.streetArea = "Enter the street or area.";
+    }
+    if (!formData.city.trim()) {
+      nextErrors.city = "Enter the pickup city.";
+    }
+    if (!formData.state.trim()) {
+      nextErrors.state = "Enter the pickup state.";
+    }
+    if (!pickupDetails) {
+      nextErrors.pickupLocation = "Select a valid pickup point on the map.";
+    }
+    if (!locationConfirmed) {
+      nextErrors.pickupLocation =
+        "Confirm that the selected map point is the pickup location.";
+    }
     if (!formData.confirmation) {
       nextErrors.confirmation =
         "Confirm that the information provided is accurate.";
@@ -279,7 +327,7 @@ const DonationForm = () => {
     return nextErrors;
   };
 
-  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const availableSlots = MAX_IMAGES - images.length;
     const nextImages: SelectedImage[] = [];
@@ -310,6 +358,56 @@ const DonationForm = () => {
     setImages((current) => [...current, ...nextImages]);
     setErrors((current) => ({ ...current, images: imageMessage }));
     event.target.value = "";
+
+    if (nextImages.length === 0) return;
+    setIsAnalyzingImages(true);
+    try {
+      for (const image of nextImages) {
+        const compressed = await imageCompression(image.file, {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          initialQuality: 0.8,
+        });
+        const base64Image = await convertImageToBase64(compressed);
+        const response = await axios.post(
+          `${import.meta.env.VITE_Backend_URL}/api/upload/analyze`,
+          { base64Image },
+          { withCredentials: true, timeout: 60000 },
+        );
+        const analysis = response.data?.analysis as ImageAnalysis | undefined;
+        if (!analysis || analysis.status !== "complete") continue;
+
+        const warnings: string[] = [];
+        if (analysis.isFood === false) warnings.push("This image may not show food.");
+        if (analysis.appearsAiGenerated === true) warnings.push("This image may be AI-generated.");
+        if (analysis.freshness === "questionable" || analysis.freshness === "spoiled_looking") {
+          warnings.push("This image has questionable visible food quality.");
+        }
+        if (warnings.length > 0) {
+          setImageAnalysisWarnings((current) => [...current, ...warnings]);
+          enqueueSnackbar(warnings.join(" "), {
+            variant: "warning",
+            autoHideDuration: 7000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Immediate AI image analysis failed:", error);
+      const providerError = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : undefined;
+      enqueueSnackbar(
+        providerError
+          ? `AI review unavailable: ${providerError}`
+          : "Photo uploaded, but AI review is temporarily unavailable.",
+        {
+        variant: "info",
+        },
+      );
+    } finally {
+      setIsAnalyzingImages(false);
+    }
   };
 
   const removeImage = (id: string) => {
@@ -332,6 +430,7 @@ const DonationForm = () => {
 
   const uploadImages = async () => {
     const urls: string[] = [];
+    setImageAnalysisWarnings([]);
     for (let index = 0; index < images.length; index += 1) {
       const image = images[index];
       setUploadStatus(`Uploading image ${index + 1} of ${images.length}...`);
@@ -349,6 +448,26 @@ const DonationForm = () => {
       );
       if (!response.data?.url) {
         throw new Error(`Image ${index + 1} upload failed.`);
+      }
+      const analysis = response.data.analysis as ImageAnalysis | undefined;
+      if (analysis?.status === "complete") {
+        const warnings: string[] = [];
+        if (analysis.isFood === false) {
+          warnings.push(`Image ${index + 1} may not show food.`);
+        }
+        if (analysis.appearsAiGenerated === true) {
+          warnings.push(`Image ${index + 1} may be AI-generated; please use an original photo.`);
+        }
+        if (analysis.freshness === "questionable" || analysis.freshness === "spoiled_looking") {
+          warnings.push(`Image ${index + 1} has questionable visible quality.`);
+        }
+        if (warnings.length > 0) {
+          setImageAnalysisWarnings((current) => [...current, ...warnings]);
+          enqueueSnackbar(warnings.join(" "), {
+            variant: "warning",
+            autoHideDuration: 7000,
+          });
+        }
       }
       urls.push(response.data.url);
     }
@@ -404,6 +523,14 @@ const DonationForm = () => {
           pincode: formData.pincode.trim(),
           address: formData.address.trim(),
           pickupInstructions: formData.pickupInstructions.trim(),
+          pickupLatitude: pickupDetails?.latitude,
+          pickupLongitude: pickupDetails?.longitude,
+          pickupPlaceId: pickupDetails?.placeId,
+          buildingNumber: formData.buildingNumber.trim(),
+          streetArea: formData.streetArea.trim(),
+          landmark: formData.landmark.trim(),
+          city: formData.city.trim(),
+          state: formData.state.trim(),
           safetyConfirmedAt: new Date().toISOString(),
           imageUrl: uploadedImageUrls[0] || "",
           images: uploadedImageUrls,
@@ -719,21 +846,43 @@ const DonationForm = () => {
               title="Pickup details"
               icon={<MapPin />}
             >
-              <Field
-                id="pickupLocation"
-                label="Pickup area or landmark"
-                required
-                error={errors.pickupLocation}
-              >
-                <Input
-                  id="pickupLocation"
-                  value={formData.pickupLocation}
-                  onChange={(event) =>
-                    updateField("pickupLocation", event.target.value)
-                  }
-                  placeholder="Area, landmark, or neighborhood"
-                  className={inputClass}
-                />
+              <div className="sm:col-span-2">
+                <label className="text-sm font-bold text-[#14231d]">Choose pickup location <span className="text-[#a14d39]">*</span></label>
+                <p className="mt-1 text-sm text-[#536258]">Search for the place where the NGO should collect the food. It does not have to be your current location.</p>
+                <div className="mt-3">
+                  <PickupLocationPicker
+                    value={pickupDetails}
+                    onChange={(location) => {
+                      setPickupDetails(location);
+                      setLocationConfirmed(false);
+                      setLocationMessage("");
+                      updateField("pickupLocation", location.address);
+                      if (!formData.pincode) updateField("pincode", location.pincode);
+                      if (!formData.city) updateField("city", location.city);
+                      if (!formData.state) updateField("state", location.state);
+                    }}
+                    onError={(message) => {
+                      setLocationMessage(message);
+                      setPickupDetails(null);
+                      setLocationConfirmed(false);
+                    }}
+                  />
+                </div>
+                {locationMessage && <p className="mt-2 text-sm text-[#a14d39]">{locationMessage}</p>}
+                {errors.pickupLocation && <p className="mt-2 text-sm text-red-700">{errors.pickupLocation}</p>}
+                <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-[#dce5dd] bg-[#f7faf5] p-3">
+                  <input type="checkbox" checked={locationConfirmed} onChange={(event) => setLocationConfirmed(event.target.checked)} className="mt-1 h-5 w-5 accent-[#17633b]" />
+                  <span className="text-sm leading-6 text-[#536258]">I confirm this map pin is the exact place where the NGO should collect the donation.</span>
+                </label>
+              </div>
+              <Field id="buildingNumber" label="Building / shop number" required error={errors.buildingNumber}>
+                <Input id="buildingNumber" value={formData.buildingNumber} onChange={(event) => updateField("buildingNumber", event.target.value)} placeholder="e.g., Shop 4, Flat 201" className={inputClass} />
+              </Field>
+              <Field id="streetArea" label="Street / area" required error={errors.streetArea}>
+                <Input id="streetArea" value={formData.streetArea} onChange={(event) => updateField("streetArea", event.target.value)} placeholder="Street, locality, or area" className={inputClass} />
+              </Field>
+              <Field id="landmark" label="Nearby landmark">
+                <Input id="landmark" value={formData.landmark} onChange={(event) => updateField("landmark", event.target.value)} placeholder="Optional landmark" className={inputClass} />
               </Field>
               <Field
                 id="pincode"
@@ -771,6 +920,12 @@ const DonationForm = () => {
                   }`}
                   aria-describedby="pincode-help"
                 />
+              </Field>
+              <Field id="city" label="City" required error={errors.city}>
+                <Input id="city" value={formData.city} onChange={(event) => updateField("city", event.target.value)} placeholder="City" className={inputClass} />
+              </Field>
+              <Field id="state" label="State" required error={errors.state}>
+                <Input id="state" value={formData.state} onChange={(event) => updateField("state", event.target.value)} placeholder="State" className={inputClass} />
               </Field>
               <Field
                 id="address"
@@ -937,6 +1092,20 @@ const DonationForm = () => {
             >
               {uploadStatus && (
                 <p className="text-sm text-[#536258]">{uploadStatus}</p>
+              )}
+              {isAnalyzingImages && (
+                <p className="text-sm text-[#536258]">Checking whether the photo shows food and reviewing visible quality...</p>
+              )}
+              {imageAnalysisWarnings.length > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <p className="font-semibold">Photo review notice</p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {imageAnalysisWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+                  </ul>
+                  <p className="mt-2 text-xs">
+                    This is a visual estimate, not a food-safety or freshness certification. You may still submit.
+                  </p>
+                </div>
               )}
               <Button
                 type="submit"

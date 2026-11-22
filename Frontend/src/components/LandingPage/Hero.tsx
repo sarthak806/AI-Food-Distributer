@@ -1,5 +1,6 @@
 import React from "react";
 import { landingIcons } from "./landingIcons";
+import { demoLandingImpact, formatImpactNumber } from "./demoData";
 
 interface HeroProps {
   className?: string;
@@ -16,14 +17,14 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
           <span className="h-2 w-2 rounded-full bg-[#53aa6a]" /> AI-powered food redistribution
         </div>
         <h1 className="my-5 font-sans text-[clamp(3.4rem,7vw,6.8rem)] font-bold leading-[.92] tracking-[-.05em]">
-          Waste less.
+          Waste less
           <br />
-          <em className="text-[#65A25D] not-italic">Feed more.</em>
+          <em className="text-[#65A25D] not-italic">Feed more</em>
           <br />
-          Move smarter.
+          Move smarter
         </h1>
         <p className="max-w-[500px] text-base leading-8 text-[#536258]">
-          ShareBite connects surplus food with the people and organizations that can put it to work — quickly, safely, and intelligently.
+          ShareBite connects surplus food with the people and organizations that can put it to work — quickly, safely, and intelligently
         </p>
 
         <div className="mt-8 flex flex-wrap gap-4">
@@ -54,15 +55,16 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
 
       <div className="relative grid min-h-[510px] place-items-center animate-in fade-in zoom-in-95 duration-1000">
         <div className="absolute h-72 w-72 rounded-full bg-[#d7edca] opacity-60 blur-2xl" />
-        <div className="relative z-10 w-full max-w-[620px] rounded-[1.4rem] border border-[#c9d9c9] bg-white/90 p-5 shadow-[0_2rem_5rem_rgba(37,68,45,.12)] transition duration-500 hover:-translate-y-2 hover:rotate-[.35deg] hover:shadow-[0_2.4rem_6rem_rgba(37,68,45,.18)]">
+        <div className="relative z-10 w-full max-w-[620px] rounded-[1.4rem] border border-[#c9d9c9] bg-white/90 p-5 shadow-
+        [0_2rem_5rem_rgba(37,68,45,.12)] transition duration-500 hover:-translate-y-2 hover:rotate-[.35deg] hover:shadow-[0_2.4rem_6rem_rgba(37,68,45,.18)]">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[.68rem] font-bold uppercase tracking-[.14em] text-[#17633b]">SHAREBITE / LIVE OVERVIEW</span>
+              <span className="text-[.68rem] font-bold uppercase tracking-[.14em] text-[#17633b]">SHAREBITE / DEMO OVERVIEW</span>
               <h3 className="mt-1 font-serif text-xl">Redistribution network</h3>
             </div>
             <div className="flex items-center gap-2 text-xs font-bold text-[#17633b]">
               <span className="h-2 w-2 rounded-full bg-[#53aa6a]" />
-              Live system
+              Demo mode
             </div>
           </div>
 
@@ -102,8 +104,11 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#dcebd6] text-[#17633b]">{landingIcons.spark}</div>
             <div className="flex-1">
               <span className="text-[.68rem] font-bold uppercase tracking-[.14em] text-[#17633b]">SYSTEM STATUS</span>
-              <strong className="block text-sm">Awaiting live data</strong>
-              <p className="text-[.68rem] text-[#536258]">No donations connected yet. Your real metrics will appear here.</p>
+              <strong className="block text-sm">Illustrative network activity</strong>
+              <p className="text-[.68rem] text-[#536258]">
+                {formatImpactNumber(demoLandingImpact.mealsRedistributed)} sample meals redistributed through {formatImpactNumber(demoLandingImpact.successfulDeliveries)} deliveries.
+              </p>
+              <p className="mt-1 text-[.62rem] font-bold uppercase tracking-[.08em] text-[#718078]">Sample data — not real platform activity</p>
             </div>
             <span className="text-xs font-bold text-[#17633b]">● Ready</span>
           </div>

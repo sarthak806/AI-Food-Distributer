@@ -37,9 +37,10 @@ interface OTPDialogProps {
   onClose: () => void;
   onSubmit: (otp: string) => void;
   isVerifying: boolean;
+  donationId: string | null;
 }
 
-const OTPDialog: React.FC<OTPDialogProps> = ({ isOpen, onClose, onSubmit, isVerifying }) => {
+const OTPDialog: React.FC<OTPDialogProps> = ({ isOpen, onClose, onSubmit, isVerifying, donationId }) => {
   const [otp, setOtp] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +52,14 @@ const OTPDialog: React.FC<OTPDialogProps> = ({ isOpen, onClose, onSubmit, isVeri
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Enter Delivery OTP</AlertDialogTitle>
+          <AlertDialogTitle>
+            Enter Delivery OTP
+            {donationId && (
+              <span className="mt-1 block text-xs font-normal text-gray-500">
+                Donation ID: {donationId}
+              </span>
+            )}
+          </AlertDialogTitle>
         </AlertDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
@@ -193,6 +201,7 @@ const TrackDonations = () => {
                   <span>{donation.foodType}</span>
                   <Badge variant="secondary">{donation.status}</Badge>
                 </CardTitle>
+                <p className="px-6 text-[10px] text-gray-400">Donation ID: {donation._id}</p>
               </CardHeader>
               
               <CardContent className="space-y-4">
@@ -264,6 +273,7 @@ const TrackDonations = () => {
         }}
         onSubmit={handleVerifyOTP}
         isVerifying={isVerifying}
+        donationId={selectedDonation}
       />
     </div>
   );

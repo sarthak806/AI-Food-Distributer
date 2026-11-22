@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Star } from 'lucide-react';
+import { Calendar, Clock3, MapPin, Navigation, Star } from 'lucide-react';
 import Spinner from '@/Animations/Spinner';
 import { useSnackbar } from 'notistack';
 import {
@@ -11,11 +11,9 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 
@@ -28,6 +26,16 @@ interface Donation {
   description: string;
   imageUrl: string;
   status: string;
+  pickupStart: string;
+  pickupEnd: string;
+  pickupInstructions?: string;
+  buildingNumber?: string;
+  streetArea?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
   receiver: {
     _id: string;
     name: string;
@@ -114,9 +122,9 @@ const Donationactivity: React.FC = () => {
         `${import.meta.env.VITE_Backend_URL}/api/donations/my-donations`,
         { withCredentials: true }
       );
-      setDonations(response.data.filter((d: Donation) => 
-        d.status === 'accepted' || d.status === 'delivered'
-      ));
+      setDonations(response.data
+        .filter((d: Donation) => d.status === 'accepted' || d.status === 'delivered')
+        .map((donation: Donation) => ({ ...donation, otp: undefined })));
     } catch (error) {
       console.error('Error fetching donations:', error);
       enqueueSnackbar('Failed to fetch donations', { variant: 'error' });
@@ -138,12 +146,28 @@ const Donationactivity: React.FC = () => {
         d._id === donationId ? { ...d, otp: response.data.otp } : d
       ));
       
-      enqueueSnackbar('OTP generated successfully!', { variant: 'success' });
+      enqueueSnackbar(
+        response.data.notificationSent
+          ? 'OTP generated and sent to the NGO.'
+          : 'OTP generated. Show this OTP to the NGO because email delivery failed.',
+        { variant: response.data.notificationSent ? 'success' : 'warning' },
+      );
     } catch (error) {
       console.error('Error generating OTP:', error);
-      enqueueSnackbar('Failed to generate OTP', { variant: 'error' });
+      if (axios.isAxiosError(error)) {
+        const serverMessage = error.response?.data?.error || error.response?.data?.message;
+        enqueueSnackbar(serverMessage || `Failed to generate OTP (${error.response?.status || "network error"})`, { variant: 'error' });
+      } else {
+        enqueueSnackbar('Failed to generate OTP', { variant: 'error' });
+      }
     }
   };
+
+  const formatDateTime = (value?: string) =>
+    value ? new Date(value).toLocaleString([], {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }) : "Not provided";
 
   const getFeedbackDetails = async (donationId: string) => {
     try {
@@ -203,6 +227,9 @@ const Donationactivity: React.FC = () => {
                     {donation.status}
                   </Badge>
                 </CardTitle>
+                {import.meta.env.DEV && (
+                  <p className="text-[10px] text-gray-400">Donation ID: {donation._id}</p>
+                )}
               </CardHeader>
               
               <CardContent className="space-y-4">
@@ -218,6 +245,28 @@ const Donationactivity: React.FC = () => {
                     <MapPin className="h-4 w-4" />
                     {donation.pickupLocation}
                   </p>
+                  <div className="rounded-lg bg-[#f4f8f2] p-3 text-sm text-[#405248]">
+                    <p className="flex items-start gap-2">
+                      <Navigation className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        {[donation.buildingNumber, donation.streetArea, donation.landmark, donation.city, donation.state]
+                          .filter(Boolean)
+                          .join(", ") || donation.pickupLocation}
+                      </span>
+                    </p>
+                    <p className="mt-2 flex items-start gap-2">
+                      <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        Pickup window:<br />
+                        {formatDateTime(donation.pickupStart)} – {formatDateTime(donation.pickupEnd)}
+                      </span>
+                    </p>
+                    {donation.pickupInstructions && (
+                      <p className="mt-2 border-t border-[#dce8da] pt-2">
+                        <strong>Instructions:</strong> {donation.pickupInstructions}
+                      </p>
+                    )}
+                  </div>
                   {donation.receiver && (
                     <div className="border-t pt-2">
                       <p className="text-sm font-medium mb-1">Accepted by:</p>
@@ -236,13 +285,14 @@ const Donationactivity: React.FC = () => {
 
               <CardFooter className="flex flex-col gap-2">
                 {donation.status === 'accepted' && (
-                  <Button 
-                    className="w-full"
-                    onClick={() => generateOTP(donation._id)}
-                    variant="default"
-                  >
-                    Generate Delivery OTP
-                  </Button>
+                  <>
+                    <p className="w-full text-center text-xs text-gray-500">
+                      Generate the OTP when the NGO is ready to collect the food.
+                    </p>
+                    <Button className="w-full" onClick={() => generateOTP(donation._id)} variant="default">
+                      Generate Delivery OTP
+                    </Button>
+                  </>
                 )}
                 {donation.status === 'delivered' && (
                   <Button

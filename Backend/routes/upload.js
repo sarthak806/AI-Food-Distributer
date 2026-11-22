@@ -2,6 +2,31 @@ const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middlewares/Authentication');
 const { uploadImageToCloudinary } = require('../utils/imageupload');
+const { analyzeFoodImage } = require('../utils/imageanalysis');
+
+router.post('/analyze', authMiddleware, async (req, res) => {
+  const { base64Image } = req.body || {};
+  if (!/^data:image\/(jpeg|png|webp);base64,/i.test(base64Image || '')) {
+    return res.status(400).json({
+      success: false,
+      message: "Only JPG, PNG, and WebP images are supported",
+    });
+  }
+
+  try {
+    const analysis = await analyzeFoodImage(base64Image);
+    return res.status(200).json({ success: true, analysis });
+  } catch (error) {
+    console.error("AI image analysis failed:", error);
+    return res.status(502).json({
+      success: false,
+      message: "AI image analysis failed",
+      error: process.env.NODE_ENV === "development"
+        ? error.response?.data?.error?.message || error.message
+        : undefined,
+    });
+  }
+});
 
 // Route handler with better error handling
 router.post('/', authMiddleware, async (req, res) => {
@@ -44,6 +69,22 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     console.log(`Uploading image of size: ${sizeInMB.toFixed(2)}MB (${(sizeInMB / 1024).toFixed(3)}GB) to folder: ${folder}`);
+
+    let analysis;
+    try {
+      analysis = await analyzeFoodImage(base64Image);
+    } catch (analysisError) {
+      console.error("AI image analysis failed; continuing upload:", analysisError);
+      analysis = {
+        status: "unavailable",
+        reason: "AI analysis could not be completed.",
+        isFood: null,
+        appearsAiGenerated: null,
+        freshness: "unknown",
+        confidence: null,
+        notes: [],
+      };
+    }
     
     // Upload to Cloudinary
     const imageUrl = await uploadImageToCloudinary(base64Image, folder);
@@ -53,7 +94,8 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Image uploaded successfully",
-      url: imageUrl 
+      url: imageUrl,
+      analysis,
     });
   }
   catch (error) {
