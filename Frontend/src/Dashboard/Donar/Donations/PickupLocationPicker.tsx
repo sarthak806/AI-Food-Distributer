@@ -257,6 +257,9 @@ export default function PickupLocationPicker({
       url.searchParams.set("access_token", MAPPLS_API_KEY);
 
       const response = await fetch(url);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("MAPPLS_AUTHORIZATION_FAILED");
+      }
       if (!response.ok) throw new Error(`Reverse geocoding failed: ${response.status}`);
       const responseData = await response.json() as { results?: ReverseGeocodeResult[] };
       const result = responseData.results?.[0];
@@ -275,7 +278,9 @@ export default function PickupLocationPicker({
       });
     } catch (error) {
       console.error("Mappls reverse geocoding failed:", error);
-      onError("We could not identify this pickup point. Try another location.");
+      onError(error instanceof Error && error.message === "MAPPLS_AUTHORIZATION_FAILED"
+        ? "Mappls rejected the key. Generate a valid static web key and add it to VITE_MAPPLS_API_KEY."
+        : "We could not identify this pickup point. Try another location.");
     } finally {
       setIsResolving(false);
     }
@@ -298,6 +303,9 @@ export default function PickupLocationPicker({
       url.searchParams.set("access_token", MAPPLS_API_KEY);
 
       const response = await fetch(url);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("MAPPLS_AUTHORIZATION_FAILED");
+      }
       if (!response.ok) throw new Error(`Search failed: ${response.status}`);
       const responseData = await response.json() as {
         suggestedLocations?: SearchResult[];
@@ -309,7 +317,9 @@ export default function PickupLocationPicker({
       }
     } catch (error) {
       console.error("Mappls location search failed:", error);
-      onError("Location search is temporarily unavailable. Try again.");
+      onError(error instanceof Error && error.message === "MAPPLS_AUTHORIZATION_FAILED"
+        ? "Mappls rejected the key. Generate a valid static web key and add it to VITE_MAPPLS_API_KEY."
+        : "Location search is temporarily unavailable. Try again.");
     } finally {
       setIsSearching(false);
     }
