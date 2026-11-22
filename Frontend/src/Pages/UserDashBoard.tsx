@@ -16,7 +16,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import ThemeToggle from "@/components/ThemeToggle";
 
 
 interface BaseMenuItem {
@@ -68,9 +67,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ data }) => {
                                 </BreadcrumbItem>
                             </BreadcrumbList>
                         </Breadcrumb>
-                    </div>
-                    <div className="ml-auto px-4">
-                        <ThemeToggle />
                     </div>
                 </header>
                 <hr />

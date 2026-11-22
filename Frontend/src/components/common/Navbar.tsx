@@ -5,7 +5,6 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import AdminPortalLink from '@/admin/AdminPortalLink';
-import ThemeToggle from '@/components/ThemeToggle';
 
 // Define props type
 interface NavbarProps {
@@ -19,18 +18,16 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
   const dashboardUrl = `/user/${user?.role || 'Donar'}`;
 
   return (
-    <header className={cn('sticky top-0 z-20 border-b border-[#dce5dd] bg-[#f7faf5]/95 backdrop-blur dark:border-border dark:bg-background/95', className)}>
+    <header className={cn('sticky top-0 z-20 border-b border-[#dce5dd] bg-[#f7faf5]/95 backdrop-blur', className)}>
       <div className='mx-auto flex max-w-[1240px] items-center justify-between px-5 py-4 md:px-12'>
       <Link className='flex items-center gap-2 font-bold text-[#14231d]' to='/'><span className='grid h-8 w-8 place-items-center rounded-full bg-[#17633b] text-white'>♥</span><span>Share<span className='text-[#17633b]'>Bite</span></span></Link>
       <nav className='hidden gap-8 text-sm text-[#536258] md:flex'>
         <a className='transition hover:text-[#17633b]' href='#home'>Home</a><a className='transition hover:text-[#17633b]' href='#how-it-works'>How it works</a><a className='transition hover:text-[#17633b]' href='#features'>Features</a><a className='transition hover:text-[#17633b]' href='#impact'>Impact</a>
       </nav>
       <div className='hidden items-center gap-5 md:flex'>
-        <ThemeToggle />
         {!isLogin ? <><Link className='font-bold text-[#124c2d] transition hover:text-[#17633b]' to='/user/login'>Log in</Link><Link className='inline-flex items-center gap-2 rounded-full bg-[#17633b] px-5 py-3 text-xs font-bold text-white transition hover:-translate-y-1 hover:bg-[#22784a]' to='/user/login'>Get started <span>→</span></Link><AdminPortalLink /></> : <Link to={dashboardUrl} className='font-bold text-[#124c2d]'>Dashboard</Link>}
       </div>
-      <div className='flex items-center gap-2 md:hidden'>
-          <ThemeToggle />
+      <div className='md:hidden'>
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant='ghost' aria-label='Open menu'>☰</Button>

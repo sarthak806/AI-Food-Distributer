@@ -114,29 +114,6 @@
    2. GLOBAL DASHBOARD STYLES
 ========================================== */
 
-.dark .donor-dashboard {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
-.dark .dashboard-card {
-  background: hsl(var(--card));
-  border-color: hsl(var(--border));
-  box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
-}
-
-.dark .journey-title,
-.dark .activity-title,
-.dark .section-title {
-  color: hsl(var(--foreground));
-}
-
-.dark .total-donations,
-.dark .section-eyebrow,
-.dark .metric-label {
-  color: hsl(var(--muted-foreground));
-}
-
 .font-serif {
   font-family: "Playfair Display", Georgia, serif;
 }
