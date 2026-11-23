@@ -7,6 +7,7 @@ import axios from "axios";
 import { useSnackbar } from "notistack";
 import { useAuth } from "@/context/AuthContext";
 import AdminPortalLink from "@/admin/AdminPortalLink";
+import LoginTransition from "@/Animations/LoginTransition";
 
 export default function LoginForm({
   className,
@@ -16,6 +17,7 @@ export default function LoginForm({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginTransitionRole, setLoginTransitionRole] = useState<"NGO" | "Donar" | null>(null);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { user, setUser, fetchUserData } = useAuth();
@@ -42,7 +44,14 @@ export default function LoginForm({
       if (response.data.token) localStorage.setItem("token", response.data.token);
       if (response.data.user) setUser(response.data.user);
       enqueueSnackbar("You're in.", { variant: "success" });
-      await fetchUserData();
+      const authenticatedUser = await fetchUserData();
+      const role = authenticatedUser?.role || response.data.user?.role;
+      if (role !== "NGO" && role !== "Donar") {
+        throw new Error("Your account role could not be verified.");
+      }
+      setLoginTransitionRole(role);
+      await new Promise((resolve) => window.setTimeout(resolve, 1400));
+      navigate(`/user/${role}`, { replace: true });
     } catch (error: unknown) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || "That didn't work — try again."
@@ -52,12 +61,6 @@ export default function LoginForm({
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!loading && user?.role) {
-      navigate(`/user/${user.role}`, { replace: true });
-    }
-  }, [loading, user, navigate]);
 
   // magnetic button — nudges toward the cursor within its own bounds
   const handleBtnMove = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -74,6 +77,7 @@ export default function LoginForm({
 
   return (
     <>
+      {loginTransitionRole && <LoginTransition role={loginTransitionRole} />}
       <style>{`
         @keyframes sb-login-in {
           from { opacity: 0; transform: translateY(18px) scale(.985); }

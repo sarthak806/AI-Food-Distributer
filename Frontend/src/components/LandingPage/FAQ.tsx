@@ -9,9 +9,9 @@ interface Faq {
 
 const fallbackFaqs: Faq[] = [
   {
-    question: "What is SharePlate?",
+    question: "What is ShareBite?",
     answer:
-      "SharePlate is a food-sharing platform that connects surplus food with people and organizations that need it.",
+      "ShareBite is a food-sharing platform that connects surplus food with people and organizations that need it.",
   },
   {
     question: "Who can donate food?",
@@ -24,9 +24,9 @@ const fallbackFaqs: Faq[] = [
       "Individuals, NGOs, shelters, and community organizations can browse available donations and request support.",
   },
   {
-    question: "Is SharePlate free to use?",
+    question: "Is ShareBite free to use?",
     answer:
-      "Yes. SharePlate is designed to make food sharing accessible to everyone in the community.",
+      "Yes. ShareBite is designed to make food sharing accessible to everyone in the community.",
   },
   {
     question: "How do I arrange collection?",

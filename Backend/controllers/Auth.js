@@ -69,7 +69,7 @@ const sendOTPUsingEmail = async(req, res)=>{
 
     // Send OTP via email (or fallback to console for development)
     try {
-      const subject = 'SharePlate - Verify your Email';
+      const subject = 'ShareBite - Verify your Email';
       const text = `Your OTP for email verification is: ${otp}. It is valid for 10 minutes.`;
       const htmlBody = otpVerificationTemplate(name, otp, "verification");
       await sendEmail(normalizedEmail, subject, text, htmlBody);
@@ -296,7 +296,7 @@ const ForgotPasswordOTP = async (req, res) => {
     await OTP.create({ email: normalizedEmail, otp });
 
     // Send OTP via email
-    const subject = 'SharePlate - Password Reset OTP';
+    const subject = 'ShareBite - Password Reset OTP';
     const htmlBody = otpVerificationTemplate(user.name, otp, 'reset');
     
     try {

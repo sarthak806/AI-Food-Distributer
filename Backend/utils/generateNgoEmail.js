@@ -1,5 +1,5 @@
 function generateNGOEmail(donorDetails, donationDetails) {
-  const subject = "🌍 New Donation Match - SharePlate 🌱";
+  const subject = "🌍 New Donation Match - ShareBite 🌱";
 
   const text = `Hello,
 
@@ -20,10 +20,10 @@ Please contact the donor to arrange pickup.
 Thank you for helping us reduce food waste and support our community.
 
 Best regards,
-SharePlate Team`;
+ShareBite Team`;
 
   const html = `<div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #4CAF50;">🌍 New Donation Match - SharePlate 🌱</h2>
+          <h2 style="color: #4CAF50;">🌍 New Donation Match - ShareBite 🌱</h2>
           <p>Hello,</p>
           <p>A new donation is available for your NGO.</p>
           <h3 style="color: #4CAF50;">Donor Details:</h3>
@@ -40,9 +40,9 @@ SharePlate Team`;
           </ul>
           <p>Please contact the donor to arrange pickup.</p>
           <p>Thank you for helping us reduce food waste and support our community.</p>
-          <p style="color: #4CAF50;">Best regards,<br>SharePlate Team</p>
+          <p style="color: #4CAF50;">Best regards,<br>ShareBite Team</p>
           <footer style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd;">
-            <p style="font-size: 12px; color: #777;">You are receiving this email because you are a registered NGO with SharePlate.</p>
+            <p style="font-size: 12px; color: #777;">You are receiving this email because you are a registered NGO with ShareBite.</p>
           </footer>
           </div>`;
 

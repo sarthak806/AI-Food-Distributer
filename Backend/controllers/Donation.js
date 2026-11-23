@@ -16,7 +16,7 @@ require("dotenv").config();
 const geocodeWithNominatim = async (address) => {
   const response = await axios.get(
     `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${encodeURIComponent(address)}`,
-    { headers: { "User-Agent": "SharePlate/1.0 donation-matching" } }
+    { headers: { "User-Agent": "ShareBite/1.0 donation-matching" } }
   );
   const result = response.data?.[0];
   if (!result) return null;
@@ -686,7 +686,7 @@ const generateDeliveryOTP = async (req, res) => {
     await donation.save();
 
     // Create email content
-    const emailSubject = 'SharePlate - Delivery OTP';
+    const emailSubject = 'ShareBite - Delivery OTP';
     const textContent = `Your delivery OTP is: ${otp}. This OTP will expire in 30 minutes.`;
     
     // Create custom HTML template for delivery OTP
@@ -695,7 +695,7 @@ const generateDeliveryOTP = async (req, res) => {
       <html>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #2E7D32; text-align: center;">SharePlate Delivery OTP</h2>
+            <h2 style="color: #2E7D32; text-align: center;">ShareBite Delivery OTP</h2>
             <p>Hello ${donation.receiver.name},</p>
             <p>A delivery OTP has been generated for the food donation from ${donation.donor.name}.</p>
             <p>Donation details:</p>

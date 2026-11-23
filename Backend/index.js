@@ -138,7 +138,7 @@ app.get('/api/cors-test', (req, res) => {
   });
 });
 
-// In production, the API serves the Vite frontend so SharePlate can run as
+// In production, the API serves the Vite frontend so ShareBite can run as
 // one web service (for example, on Render).
 const frontendDistPath = path.join(__dirname, '..', 'Frontend', 'dist');
 app.use(express.static(frontendDistPath));

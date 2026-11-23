@@ -15,7 +15,7 @@ const Donatemain: React.FC = () => {
     {
       src: userImage1,
       alt: "First slide",
-      label: "SharePlate",
+      label: "ShareBite",
       description: "Your extra food can bring smiles to those in need.",
     },
     {
@@ -89,7 +89,7 @@ const Donatemain: React.FC = () => {
         <div className="w-full max-w-3xl mt-8 sm:mt-7 flex flex-col items-start space-y-4 sm:space-y-6">
           <div className="w-full ">
           <CardTitle className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">
-              Welcome to SharePlate
+              Welcome to ShareBite
             </CardTitle>
             <p className="text-lg sm:text-xl semibold text-gray-700 mt-2 sm:mt-4 mb-4">
               Donate Food, Create Hope!

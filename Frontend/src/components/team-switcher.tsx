@@ -15,7 +15,7 @@ export function TeamSwitcher(): JSX.Element {
   const { user } = useAuth();
 
   const [teams, setTeams] = useState({
-    name: "SharePlate",
+    name: "ShareBite",
     logo: logo,
     plan: "India",
   });

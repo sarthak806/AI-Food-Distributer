@@ -11,7 +11,7 @@ const sendEmail = async (to, subject, text, html) => {
         to: to,
         from: {
             email: process.env.SENDGRID_EMAIL,
-            name: 'SharePlate' // Add a sender name
+            name: 'ShareBite' // Add a sender name
         },
         subject: subject,
         text: text || 'Please enable HTML to view this email',

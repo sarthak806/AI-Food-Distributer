@@ -2,7 +2,7 @@
 function otpVerificationTemplate(name, otp, type){
       const titleText = (type === 'verification' ? 'Email Verification' : 'Password Reset');
       const messageText = type === 'verification' 
-          ? 'Welcome to SharePlate. To get started, please use the following OTP to verify your email address and complete your registration process.'
+          ? 'Welcome to ShareBite. To get started, please use the following OTP to verify your email address and complete your registration process.'
           : 'To reset your password, please use the following OTP code. If you did not request this password reset, please ignore this email.';
       
       return `
@@ -11,7 +11,7 @@ function otpVerificationTemplate(name, otp, type){
           <head>
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>${titleText} - SharePlate</title>
+              <title>${titleText} - ShareBite</title>
               <style>
                   body {
                       font-family: sans-serif;

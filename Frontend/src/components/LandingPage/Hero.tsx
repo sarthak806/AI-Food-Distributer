@@ -10,7 +10,7 @@ const Hero: React.FC<HeroProps> = ({ className }) => {
   return (
     <section
       id="home"
-      className={`relative mx-auto grid min-h-[680px] max-w-[1400px] scroll-mt-24 items-center gap-8 overflow-hidden bg-[#f7faf5] px-5 py-16 text-[#14231d] md:grid-cols-[.85fr_1.15fr] md:gap-16 md:px-12 lg:gap-32 ${className || ""}`}
+      className={`relative mx-auto grid min-h-[590px] max-w-[1400px] scroll-mt-24 items-center gap-8 overflow-hidden bg-[#f7faf5] px-5 py-10 text-[#14231d] md:grid-cols-[.85fr_1.15fr] md:gap-16 md:px-12 md:py-12 lg:min-h-[620px] lg:gap-32 ${className || ""}`}
     >
       <div className="max-w-[540px] animate-in fade-in slide-in-from-bottom-6 duration-700">
         <div className="inline-flex items-center gap-2 text-[.68rem] font-bold uppercase tracking-[.14em] text-[#17633b]">

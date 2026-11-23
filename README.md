@@ -1,4 +1,4 @@
-# SharePlate 🌍🍽
+# ShareBite 🌍🍽
 
 <div align="center">
 
@@ -11,7 +11,7 @@
 
 ## 📋 Overview
 
-SharePlate is a platform dedicated to reducing food waste by connecting NGOs with surplus food for efficient food sharing. This initiative ensures that excess food reaches those in need while promoting sustainability.
+ShareBite is a platform dedicated to reducing food waste by connecting NGOs with surplus food for efficient food sharing. This initiative ensures that excess food reaches those in need while promoting sustainability.
 
 ## ✨ Key Features
 
@@ -74,7 +74,7 @@ SharePlate is a platform dedicated to reducing food waste by connecting NGOs wit
 ```bash
 # Clone the repository
 git clone https://lnkd.in/dnYHgEvG
-cd shareplate
+cd sharebite
 
 # Install dependencies
 npm install
@@ -119,4 +119,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you find this project useful, please give it a star on GitHub and share it with others!
 
-#FoodWasteReduction #SharePlate #TechForGood #Sustainability #AIForGood
+#FoodWasteReduction #ShareBite #TechForGood #Sustainability #AIForGood

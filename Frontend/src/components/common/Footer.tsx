@@ -9,7 +9,7 @@ export const Footer = () => {
         <div className="flex items-start gap-2">
           {/* About Section */}
           <div>
-            <h3 className="font-serif text-lg font-bold"><Leaf className="mr-1 inline h-5 w-5 rounded-full bg-[#00602d] p-1 text-white" />SharePlate</h3>
+            <h3 className="font-serif text-lg font-bold"><Leaf className="mr-1 inline h-5 w-5 rounded-full bg-[#00602d] p-1 text-white" />ShareBite</h3>
             <p className="mt-2 max-w-[240px] text-sm leading-5 text-[#536258]">
               A student-built idea for a more thoughtful food system.
             </p>

@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 // Import Pages
 import Navbar from '../components/common/Navbar';
 import Hero from '../components/LandingPage/Hero'
-import { HowItWorks, Features, ImpactSection, CtaSection, ProofSection } from '../components/LandingPage/LandingSections';
+import { HowItWorks, Features, ImpactSection, SupportSection, CtaSection, ProofSection } from '../components/LandingPage/LandingSections';
 import Footer from '../components/Footer/Footer';
 
 
@@ -32,7 +32,7 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div className="site"><Navbar className="siteNav" /><main><Hero /><ProofSection /><HowItWorks /><Features /><ImpactSection /><CtaSection /></main><Footer /></div>
+    <div className="site"><Navbar className="siteNav" /><main><Hero /><SupportSection /><ProofSection /><HowItWorks /><Features /><ImpactSection /><CtaSection /></main><Footer /></div>
   );
 };
 

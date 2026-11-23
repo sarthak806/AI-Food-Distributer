@@ -1,4 +1,4 @@
-# Deploy SharePlate on Render
+# Deploy ShareBite on Render
 
 This project deploys as one service. Render builds the React frontend and the Express server serves it, including browser routes such as `/login`.
 
