@@ -6,9 +6,30 @@ const crypto = require('crypto');
 const OTP = require('../models/OTP');
 const { check, validationResult } = require('express-validator');
 const sendEmail = require('../utils/sendEmail');
+const twilio = require('twilio');
 
 // Import OTP Templates
 const otpVerificationTemplate = require('../helper/OTPVerification');
+
+const normalizePhone = (phone) => {
+  if (typeof phone !== 'string') return '';
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.startsWith('91') ? `+${digits}` : `+91${digits}`;
+};
+
+const getTwilioVerifyClient = () => {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!accountSid || !authToken || !serviceSid) {
+    throw new Error('Twilio phone authentication is not configured.');
+  }
+  return {
+    client: twilio(accountSid, authToken),
+    serviceSid,
+  };
+};
 
 
 // ----------------------------------------   Send Email while Registration ---------------------------------------
@@ -16,7 +37,7 @@ const otpVerificationTemplate = require('../helper/OTPVerification');
 const sendOTPUsingEmail = async(req, res)=>{
   console.log("Send OTP Request Received:", req.body?.email);
 
-  const { name, email, password, confirmPassword, role, registrationNumber } = req.body;
+  const { name, email, password, confirmPassword, role, registrationNumber, phone } = req.body;
 
   if (!name || !email || !password || !confirmPassword || !role){
     return res.status(400).json({
@@ -28,6 +49,11 @@ const sendOTPUsingEmail = async(req, res)=>{
   const normalizedEmail = typeof email === 'string' ? email.toLowerCase().trim() : '';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     return res.status(400).json({ success: false, message: "Please provide a valid email address" });
+  }
+
+  const normalizedPhone = normalizePhone(phone);
+  if (!/^\+91[6-9]\d{9}$/.test(normalizedPhone)) {
+    return res.status(400).json({ success: false, message: "Please provide a valid Indian mobile number" });
   }
 
   if (password.length < 6) {
@@ -57,6 +83,14 @@ const sendOTPUsingEmail = async(req, res)=>{
       return res.status(400).json({
         success: false,
         message: "User already exists with this email",
+      });
+    }
+
+    const phoneUser = await User.findOne({ phone: normalizedPhone });
+    if (phoneUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists with this phone number",
       });
     }
 
@@ -99,7 +133,7 @@ const sendOTPUsingEmail = async(req, res)=>{
 const OTPVerification = async(req, res)=>{
   try {
     const userData = req.body.userData || req.body;
-    const { email, name, password, role, registrationNumber } = userData;
+    const { email, name, password, role, registrationNumber, phone } = userData;
     const otp = (req.body.otp || '').toString().trim().toLowerCase();
 
     if (!email || !otp) {
@@ -114,6 +148,10 @@ const OTPVerification = async(req, res)=>{
       }
 
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPhone = normalizePhone(phone);
+    if (!/^\+91[6-9]\d{9}$/.test(normalizedPhone)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid Indian mobile number' });
+    }
 
     // Find OTP in database
     const storedOTP = await OTP.findOne({ email: normalizedEmail })
@@ -135,6 +173,14 @@ const OTPVerification = async(req, res)=>{
       });
     }
 
+    const existingPhone = await User.findOne({ phone: normalizedPhone });
+    if (existingPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this phone number already exists'
+      });
+    }
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -143,6 +189,7 @@ const OTPVerification = async(req, res)=>{
     const user = new User({
       name,
       email: normalizedEmail,
+      phone: normalizedPhone,
       password: hashedPassword,
       role,
       profileImage: `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(name)}`,
@@ -263,6 +310,106 @@ const AuthenticateUser = async (req, res) => {
   } catch (err) {
     console.error("AuthenticateUser error:", err);
     res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+  }
+};
+
+
+// ---------------------------------------- Phone OTP login ----------------------------------------
+
+const SendPhoneLoginOTP = async (req, res) => {
+  const phone = normalizePhone(req.body?.phone);
+  if (!/^\+91[6-9]\d{9}$/.test(phone)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid Indian mobile number' });
+  }
+
+  try {
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account is linked to this phone number' });
+    }
+
+    const { client, serviceSid } = getTwilioVerifyClient();
+    await client.verify.v2.services(serviceSid).verifications.create({
+      to: phone,
+      channel: 'sms',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent to your mobile number',
+    });
+  } catch (err) {
+    console.error('SendPhoneLoginOTP error:', err);
+    const missingConfig = err.message === 'Twilio phone authentication is not configured.';
+    res.status(missingConfig ? 503 : 500).json({
+      success: false,
+      message: missingConfig
+        ? 'Phone login is not configured yet.'
+        : 'Could not send the phone OTP.',
+    });
+  }
+};
+
+const VerifyPhoneLoginOTP = async (req, res) => {
+  const phone = normalizePhone(req.body?.phone);
+  const code = String(req.body?.otp || '').trim();
+  if (!/^\+91[6-9]\d{9}$/.test(phone) || !/^\d{4,8}$/.test(code)) {
+    return res.status(400).json({ success: false, message: 'A valid phone number and OTP are required' });
+  }
+
+  try {
+    const { client, serviceSid } = getTwilioVerifyClient();
+    const verification = await client.verify.v2.services(serviceSid).verificationChecks.create({
+      to: phone,
+      code,
+    });
+
+    if (verification.status !== 'approved') {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account is linked to this phone number' });
+    }
+
+    const payload = {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role,
+      },
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '12h' });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 12 * 60 * 60 * 1000,
+    }).status(200).json({
+      success: true,
+      message: 'Phone login successful!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        profileImage: user.profileImage,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (err) {
+    console.error('VerifyPhoneLoginOTP error:', err);
+    const missingConfig = err.message === 'Twilio phone authentication is not configured.';
+    res.status(missingConfig ? 503 : 500).json({
+      success: false,
+      message: missingConfig
+        ? 'Phone login is not configured yet.'
+        : 'Could not verify the phone OTP.',
+    });
   }
 };
 
@@ -389,4 +536,13 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = {sendOTPUsingEmail, OTPVerification, AuthenticateUser, ForgotPasswordOTP, ForgotPassword, resetPassword};
+module.exports = {
+  sendOTPUsingEmail,
+  OTPVerification,
+  AuthenticateUser,
+  SendPhoneLoginOTP,
+  VerifyPhoneLoginOTP,
+  ForgotPasswordOTP,
+  ForgotPassword,
+  resetPassword,
+};

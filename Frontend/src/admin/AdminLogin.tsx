@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Home } from "lucide-react";
 import { ADMIN_CREDENTIALS, ADMIN_SESSION_KEY } from "./adminCredentials";
 
 export default function AdminLogin() {
@@ -26,10 +27,17 @@ export default function AdminLogin() {
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#f7faf5] px-5 py-12">
+      <Link
+        to="/"
+        aria-label="Return to home page"
+        title="Return to home page"
+        className="fixed left-5 top-5 z-20 grid h-11 w-11 place-items-center rounded-full border border-[#dce8da] bg-[#fafcf9]/90 text-[#17633b] shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#17633b] focus-visible:ring-offset-2"
+      >
+        <Home size={20} aria-hidden="true" />
+      </Link>
       <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-[#dcebd6] opacity-70 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-[#e8f3e4] opacity-80 blur-3xl" />
       <form onSubmit={submit} className="relative w-full max-w-md rounded-[28px] border border-[#dce8da] bg-[#fafcf9]/95 p-8 shadow-[0_30px_80px_-28px_rgba(23,53,43,0.28)] backdrop-blur-xl sm:p-10">
-        <Link className="text-sm font-bold text-[#17633b] underline" to="/">Back to ShareBite</Link>
         <div className="mt-10 flex flex-col items-center text-center">
           <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#eef6eb] text-2xl text-[#17633b] shadow-sm">♥</div>
           <p className="mt-5 text-xs font-bold uppercase tracking-[.2em] text-[#17633b]">Restricted access</p>

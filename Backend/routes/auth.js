@@ -5,6 +5,8 @@ const {
   sendOTPUsingEmail, 
   OTPVerification, 
   AuthenticateUser, 
+  SendPhoneLoginOTP,
+  VerifyPhoneLoginOTP,
   ForgotPasswordOTP, 
   ForgotPassword, 
   resetPassword
@@ -25,6 +27,12 @@ router.post('/verify-email', OTPVerification);
 // @desc    Authenticate user and get token
 // @access  Public
 router.post('/login', AuthenticateUser);
+
+// @route   POST /api/auth/send-phone-login-otp
+router.post('/send-phone-login-otp', SendPhoneLoginOTP);
+
+// @route   POST /api/auth/verify-phone-login-otp
+router.post('/verify-phone-login-otp', VerifyPhoneLoginOTP);
 
 // @route   POST /api/auth/forgot-password
 // @desc    Send OTP to user's email for password reset

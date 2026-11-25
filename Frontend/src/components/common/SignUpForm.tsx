@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Clock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Clock, Loader2, Home } from "lucide-react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import AnimatedInput from "@/Animations/FormDiv";
@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 interface UserData {
   name: string;
   email: string;
+  phone: string;
   password: string;
   confirmPassword: string;
   role: "Donar" | "NGO";
@@ -44,6 +45,7 @@ export default function SignUpForm({
   const [userData, setUserData] = useState<UserData>({
     name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
     role: "Donar",
@@ -125,8 +127,14 @@ export default function SignUpForm({
   const sendOtpHandler = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    if (!userData.name.trim() || !userData.email.trim() || !userData.password) {
+    if (!userData.name.trim() || !userData.email.trim() || !userData.phone.trim() || !userData.password) {
       enqueueSnackbar("Please fill in all required fields.", { variant: 'warning' });
+      return;
+    }
+
+    const phoneDigits = userData.phone.replace(/\D/g, "");
+    if (!/^[6-9]\d{9}$/.test(phoneDigits) && !/^91[6-9]\d{9}$/.test(phoneDigits)) {
+      enqueueSnackbar("Enter a valid Indian mobile number.", { variant: "warning" });
       return;
     }
 
@@ -257,6 +265,14 @@ export default function SignUpForm({
       `}</style>
 
       <div className="relative min-h-screen w-full overflow-auto bg-[#F7FAF5]">
+        <Link
+          to="/"
+          aria-label="Return to home page"
+          title="Return to home page"
+          className="fixed left-5 top-5 z-20 grid h-11 w-11 place-items-center rounded-full border border-[#DCE8DA] bg-[#FAFCF9]/90 text-[#17633b] shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#65A25D] focus-visible:ring-offset-2"
+        >
+          <Home size={20} aria-hidden="true" />
+        </Link>
         <div aria-hidden className="pointer-events-none absolute -left-40 -top-44 h-[430px] w-[430px] rounded-full bg-[#EAF3E7] opacity-80 blur-2xl sb-orb" />
         <div aria-hidden className="pointer-events-none absolute -bottom-52 -right-44 h-[540px] w-[540px] rounded-full bg-[#E8F3E4] opacity-80 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-0 h-px w-[58vw] -translate-x-1/2 bg-gradient-to-r from-transparent via-[#65A25D]/20 to-transparent" />
@@ -471,6 +487,27 @@ export default function SignUpForm({
                       required
                       className="h-12 rounded-[13px] border-[#DCE8DA] bg-[#FBFDFC] px-3.5 text-xs text-[#17352B] placeholder:text-[#A5AFA9] transition-all duration-200 hover:border-[#C8DCC5] focus:border-[#65A25D] focus:bg-white focus:shadow-[0_0_0_4px_rgba(101,162,93,.11)]"
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="signup-phone" className="mb-1.5 block text-[11px] font-extrabold text-[#30433A]">
+                      Mobile number<sup className="text-red-500">*</sup>
+                    </Label>
+                    <div className="flex h-12 overflow-hidden rounded-[13px] border border-[#DCE8DA] bg-[#FBFDFC] transition-all duration-200 hover:border-[#C8DCC5] focus-within:border-[#65A25D] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(101,162,93,.11)]">
+                      <span className="flex items-center border-r border-[#DCE8DA] px-3 text-xs font-bold text-[#30433A]">+91</span>
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        name="phone"
+                        value={userData.phone}
+                        placeholder="9876543210"
+                        onChange={changeHandler}
+                        disabled={loading}
+                        required
+                        maxLength={10}
+                        className="h-full border-0 bg-transparent px-3 text-xs text-[#17352B] shadow-none placeholder:text-[#A5AFA9] focus-visible:ring-0"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">

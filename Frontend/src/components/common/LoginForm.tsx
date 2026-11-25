@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight, Home } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useSnackbar } from "notistack";
@@ -15,6 +15,10 @@ export default function LoginForm({
 }: React.ComponentPropsWithoutRef<"form">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+  const [phone, setPhone] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginTransitionRole, setLoginTransitionRole] = useState<"NGO" | "Donar" | null>(null);
@@ -23,8 +27,77 @@ export default function LoginForm({
   const { user, setUser, fetchUserData } = useAuth();
   const btnRef = useRef<HTMLButtonElement>(null);
 
+  const finishLogin = async (response: any) => {
+    if (response.data.token) localStorage.setItem("token", response.data.token);
+    if (response.data.user) setUser(response.data.user);
+    enqueueSnackbar("You're in.", { variant: "success" });
+    const authenticatedUser = await fetchUserData();
+    const role = authenticatedUser?.role || response.data.user?.role;
+    if (role !== "NGO" && role !== "Donar") {
+      throw new Error("Your account role could not be verified.");
+    }
+    setLoginTransitionRole(role);
+    await new Promise((resolve) => window.setTimeout(resolve, 1400));
+    navigate(`/user/${role}`, { replace: true });
+  };
+
+  const sendPhoneOtp = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (!/^[6-9]\d{9}$/.test(digits) && !/^91[6-9]\d{9}$/.test(digits)) {
+      enqueueSnackbar("Enter a valid Indian mobile number.", { variant: "warning" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_Backend_URL}/api/auth/send-phone-login-otp`,
+        { phone: digits },
+      );
+      if (!response.data?.success) throw new Error(response.data?.message || "Could not send OTP.");
+      setPhoneOtpSent(true);
+      setPhoneOtp("");
+      enqueueSnackbar("OTP sent to your mobile number.", { variant: "success" });
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Could not send the OTP."
+        : error instanceof Error ? error.message : "Could not send the OTP.";
+      enqueueSnackbar(message, { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submitHandler = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (loginMethod === "phone") {
+      if (!phoneOtpSent) {
+        await sendPhoneOtp();
+        return;
+      }
+      if (!/^\d{4,8}$/.test(phoneOtp)) {
+        enqueueSnackbar("Enter the OTP sent to your mobile number.", { variant: "warning" });
+        return;
+      }
+      setLoading(true);
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_Backend_URL}/api/auth/verify-phone-login-otp`,
+          { phone: phone.replace(/\D/g, ""), otp: phoneOtp },
+          { withCredentials: true },
+        );
+        if (!response.data?.success) throw new Error(response.data?.message || "Phone login failed.");
+        await finishLogin(response);
+      } catch (error: unknown) {
+        const message = axios.isAxiosError(error)
+          ? error.response?.data?.message || "Phone login failed."
+          : error instanceof Error ? error.message : "Phone login failed.";
+        enqueueSnackbar(message, { variant: "error" });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!email.trim() || !password) {
       enqueueSnackbar("Fill in both fields and you're good.", { variant: "warning" });
       return;
@@ -103,6 +176,14 @@ export default function LoginForm({
       `}</style>
 
       <div className="relative min-h-screen w-full overflow-hidden bg-[#F7FAF5]">
+        <Link
+          to="/"
+          aria-label="Return to home page"
+          title="Return to home page"
+          className="fixed left-5 top-5 z-20 grid h-11 w-11 place-items-center rounded-full border border-[#DCE8DA] bg-[#FAFCF9]/90 text-[#17633b] shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#65A25D] focus-visible:ring-offset-2"
+        >
+          <Home size={20} aria-hidden="true" />
+        </Link>
         {/* subtle ShareBite background — no food image, no fake stats */}
         <div
           aria-hidden
@@ -171,8 +252,87 @@ export default function LoginForm({
                 </p>
               </div>
 
-              {/* Fields — same state and values as the original */}
+              <div className="mb-5 grid grid-cols-1 rounded-[14px] border border-[#DCE8DA] bg-[#F2F6F0] p-1">
+                <button
+                  type="button"
+                  onClick={() => setLoginMethod("email")}
+                  className={cn(
+                    "h-10 rounded-[10px] text-[13px] font-bold transition",
+                    loginMethod === "email"
+                      ? "bg-white text-[#17352B] shadow-sm"
+                      : "text-[#7A8780] hover:text-[#17352B]",
+                  )}
+                >
+                  Email
+                </button>
+                {/* Mobile OTP login is temporarily disabled. */}
+                {/*
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod("phone");
+                    setPhoneOtp("");
+                  }}
+                  className={cn(
+                    "h-10 rounded-[10px] text-[13px] font-bold transition",
+                    loginMethod === "phone"
+                      ? "bg-white text-[#17352B] shadow-sm"
+                      : "text-[#7A8780] hover:text-[#17352B]",
+                  )}
+                >
+                  Mobile OTP
+                </button>
+                */}
+              </div>
+
+              {/* Fields */}
               <div className="flex flex-col gap-5">
+                {loginMethod === "phone" ? (
+                  <>
+                    <div>
+                      <label htmlFor="phone-login" className="mb-1.5 block text-[11px] font-extrabold text-[#30433A]">
+                        Mobile number
+                      </label>
+                      <div className="flex h-[53px] overflow-hidden rounded-[14px] border border-[#DDE8DC] bg-[#FBFDFC] focus-within:border-[#65A25D] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(101,162,93,.11)]">
+                        <span className="flex items-center border-r border-[#DDE8DC] px-3 text-[13px] font-bold text-[#30433A]">+91</span>
+                        <input
+                          id="phone-login"
+                          type="tel"
+                          inputMode="numeric"
+                          value={phone}
+                          onChange={(event) => {
+                            setPhone(event.target.value.replace(/\D/g, "").slice(-10));
+                            setPhoneOtpSent(false);
+                            setPhoneOtp("");
+                          }}
+                          disabled={loading}
+                          placeholder="9876543210"
+                          className="min-w-0 flex-1 border-0 bg-transparent px-3 text-[13px] text-[#17352B] outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {phoneOtpSent && (
+                      <div>
+                        <label htmlFor="phone-login-otp" className="mb-1.5 block text-[11px] font-extrabold text-[#30433A]">
+                          6-digit OTP
+                        </label>
+                        <input
+                          id="phone-login-otp"
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={8}
+                          value={phoneOtp}
+                          onChange={(event) => setPhoneOtp(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                          disabled={loading}
+                          placeholder="Enter OTP"
+                          className="h-[53px] w-full rounded-[14px] border border-[#DDE8DC] bg-[#FBFDFC] px-3.5 text-[13px] text-[#17352B] outline-none focus:border-[#65A25D] focus:bg-white focus:shadow-[0_0_0_4px_rgba(101,162,93,.11)]"
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
                 <FloatingField
                   id="email"
                   type="email"
@@ -221,6 +381,8 @@ export default function LoginForm({
                     </Link>
                   </div>
                 </div>
+                  </>
+                )}
 
                 <Button
                   ref={btnRef}
@@ -240,11 +402,15 @@ export default function LoginForm({
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Logging in…
+                      {loginMethod === "phone"
+                        ? (phoneOtpSent ? "Verifying…" : "Sending OTP…")
+                        : "Logging in…"}
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-2">
-                      Log in
+                      {loginMethod === "phone"
+                        ? (phoneOtpSent ? "Verify & log in" : "Send OTP")
+                        : "Log in"}
                       <ArrowRight
                         size={16}
                         className="translate-x-0 opacity-70 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100"
