@@ -5,7 +5,9 @@ const sendEmail = async (to, subject, text, html) => {
     const from = process.env.BREVO_SENDER_EMAIL;
 
     if (!apiKey || !from) {
-        throw new Error('Brevo email is not configured. Set BREVO_API_KEY and BREVO_SENDER_EMAIL.');
+        const error = new Error('Email delivery is not configured.');
+        error.code = 'EMAIL_NOT_CONFIGURED';
+        throw error;
     }
 
     try {
