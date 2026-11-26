@@ -1,42 +1,39 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 const sendEmail = async (to, subject, text, html) => {
-    const host = process.env.BREVO_SMTP_HOST;
-    const port = Number(process.env.BREVO_SMTP_PORT || 587);
-    const user = process.env.BREVO_SMTP_USER;
-    const pass = process.env.BREVO_SMTP_KEY;
+    const apiKey = process.env.BREVO_API_KEY;
     const from = process.env.BREVO_SENDER_EMAIL;
 
-    if (!host || !user || !pass || !from) {
-        throw new Error('Brevo SMTP is not configured. Set BREVO_SMTP_HOST, BREVO_SMTP_USER, BREVO_SMTP_KEY, and BREVO_SENDER_EMAIL.');
+    if (!apiKey || !from) {
+        throw new Error('Brevo email is not configured. Set BREVO_API_KEY and BREVO_SENDER_EMAIL.');
     }
-    if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        throw new Error('BREVO_SMTP_PORT must be a valid port number.');
-    }
-
-    const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-    });
 
     try {
-        const result = await transporter.sendMail({
-            from: { name: 'ShareBite', address: from },
-            to,
-            subject,
-            text: text || 'Please enable HTML to view this email',
-            html,
-        });
-        console.log('Email sent through Brevo SMTP:', result.messageId);
+        const response = await axios.post(
+            'https://api.brevo.com/v3/smtp/email',
+            {
+                sender: { name: 'ShareBite', email: from },
+                to: [{ email: to }],
+                subject,
+                textContent: text || 'Please enable HTML to view this email',
+                htmlContent: html,
+            },
+            {
+                headers: {
+                    'api-key': apiKey,
+                    'content-type': 'application/json',
+                    accept: 'application/json',
+                },
+                timeout: 15000,
+            },
+        );
+        console.log('Email sent through Brevo API:', response.data.messageId);
         return true;
     } catch (error) {
-        console.error('Brevo SMTP Error:', {
+        console.error('Brevo API email error:', {
             message: error.message,
-            code: error.code,
-            responseCode: error.responseCode,
-            command: error.command,
+            status: error.response?.status,
+            details: error.response?.data?.message || error.response?.data?.code,
         });
         throw error;
     }

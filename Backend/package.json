@@ -30,7 +30,6 @@
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "mongoose": "^8.10.0",
-    "nodemailer": "^10.6.1",
     "nodemon": "^3.1.9",
     "twilio": "^6.3.1"
   },
