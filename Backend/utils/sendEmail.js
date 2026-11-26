@@ -1,42 +1,42 @@
-const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
 
 const sendEmail = async (to, subject, text, html) => {
-    if (!process.env.SENDGRID_API_KEY) {
-        throw new Error('SendGrid API key is not configured');
+    const host = process.env.BREVO_SMTP_HOST;
+    const port = Number(process.env.BREVO_SMTP_PORT || 587);
+    const user = process.env.BREVO_SMTP_USER;
+    const pass = process.env.BREVO_SMTP_KEY;
+    const from = process.env.BREVO_SENDER_EMAIL;
+
+    if (!host || !user || !pass || !from) {
+        throw new Error('Brevo SMTP is not configured. Set BREVO_SMTP_HOST, BREVO_SMTP_USER, BREVO_SMTP_KEY, and BREVO_SENDER_EMAIL.');
+    }
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('BREVO_SMTP_PORT must be a valid port number.');
     }
 
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-    const msg = {
-        to: to,
-        from: {
-            email: process.env.SENDGRID_EMAIL,
-            name: 'ShareBite' // Add a sender name
-        },
-        subject: subject,
-        text: text || 'Please enable HTML to view this email',
-        html: html
-    };
+    const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass },
+    });
 
     try {
-        console.log('Attempting to send email with config:', {
-            to: msg.to,
-            from: msg.from,
-            subject: msg.subject
+        const result = await transporter.sendMail({
+            from: { name: 'ShareBite', address: from },
+            to,
+            subject,
+            text: text || 'Please enable HTML to view this email',
+            html,
         });
-
-        const response = await sgMail.send(msg);
-        console.log('SendGrid Response:', {
-            statusCode: response[0].statusCode,
-            headers: response[0].headers
-        });
+        console.log('Email sent through Brevo SMTP:', result.messageId);
         return true;
     } catch (error) {
-        console.error('SendGrid Error Details:', {
+        console.error('Brevo SMTP Error:', {
             message: error.message,
-            errors: error.response?.body?.errors,
             code: error.code,
-            fullError: JSON.stringify(error.response?.body, null, 2)
+            responseCode: error.responseCode,
+            command: error.command,
         });
         throw error;
     }

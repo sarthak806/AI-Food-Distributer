@@ -103,7 +103,7 @@ const sendOTPUsingEmail = async(req, res)=>{
     await OTP.deleteMany({ email: normalizedEmail });
     await OTP.create({ email: normalizedEmail, otp });
 
-    // Send OTP via email (or fallback to console for development)
+    // Send OTP via email
     try {
       const subject = 'ShareBite - Verify your Email';
       const text = `Your OTP for email verification is: ${otp}. It is valid for 10 minutes.`;
@@ -111,7 +111,12 @@ const sendOTPUsingEmail = async(req, res)=>{
       await sendEmail(normalizedEmail, subject, text, htmlBody);
       console.log(`Email OTP sent successfully to ${normalizedEmail}`);
     } catch (emailErr) {
-      console.log(`\n===============================================\n🔑 DEV MODE OTP for ${normalizedEmail}: ${otp}\n===============================================\n`);
+      await OTP.deleteMany({ email: normalizedEmail });
+      console.error("Email OTP delivery failed:", emailErr);
+      return res.status(502).json({
+        success: false,
+        message: 'Could not send the verification email. Please try again later.',
+      });
     }
 
     return res.status(200).json({ 
