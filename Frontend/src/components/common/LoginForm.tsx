@@ -15,7 +15,7 @@ export default function LoginForm({
 }: React.ComponentPropsWithoutRef<"form">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+  const [loginMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
   const [phoneOtp, setPhoneOtp] = useState("");
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
@@ -250,39 +250,6 @@ export default function LoginForm({
                 <p className="mt-2 text-[13px] leading-6 text-[#7A8780]">
                   Continue making every surplus meal count.
                 </p>
-              </div>
-
-              <div className="mb-5 grid grid-cols-1 rounded-[14px] border border-[#DCE8DA] bg-[#F2F6F0] p-1">
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod("email")}
-                  className={cn(
-                    "h-10 rounded-[10px] text-[13px] font-bold transition",
-                    loginMethod === "email"
-                      ? "bg-white text-[#17352B] shadow-sm"
-                      : "text-[#7A8780] hover:text-[#17352B]",
-                  )}
-                >
-                  Email
-                </button>
-                {/* Mobile OTP login is temporarily disabled. */}
-                {/*
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginMethod("phone");
-                    setPhoneOtp("");
-                  }}
-                  className={cn(
-                    "h-10 rounded-[10px] text-[13px] font-bold transition",
-                    loginMethod === "phone"
-                      ? "bg-white text-[#17352B] shadow-sm"
-                      : "text-[#7A8780] hover:text-[#17352B]",
-                  )}
-                >
-                  Mobile OTP
-                </button>
-                */}
               </div>
 
               {/* Fields */}

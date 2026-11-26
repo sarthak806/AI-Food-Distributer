@@ -52,7 +52,7 @@ const sendOTPUsingEmail = async(req, res)=>{
   }
 
   const normalizedPhone = normalizePhone(phone);
-  if (!/^\+91[6-9]\d{9}$/.test(normalizedPhone)) {
+  if (phone && !/^\+91[6-9]\d{9}$/.test(normalizedPhone)) {
     return res.status(400).json({ success: false, message: "Please provide a valid Indian mobile number" });
   }
 
@@ -86,12 +86,14 @@ const sendOTPUsingEmail = async(req, res)=>{
       });
     }
 
-    const phoneUser = await User.findOne({ phone: normalizedPhone });
-    if (phoneUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists with this phone number",
-      });
+    if (normalizedPhone) {
+      const phoneUser = await User.findOne({ phone: normalizedPhone });
+      if (phoneUser) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists with this phone number",
+        });
+      }
     }
 
     // Generate 6-character hex OTP
@@ -149,7 +151,7 @@ const OTPVerification = async(req, res)=>{
 
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedPhone = normalizePhone(phone);
-    if (!/^\+91[6-9]\d{9}$/.test(normalizedPhone)) {
+    if (phone && !/^\+91[6-9]\d{9}$/.test(normalizedPhone)) {
       return res.status(400).json({ success: false, message: 'Please provide a valid Indian mobile number' });
     }
 
@@ -173,12 +175,14 @@ const OTPVerification = async(req, res)=>{
       });
     }
 
-    const existingPhone = await User.findOne({ phone: normalizedPhone });
-    if (existingPhone) {
-      return res.status(400).json({
-        success: false,
-        message: 'User with this phone number already exists'
-      });
+    if (normalizedPhone) {
+      const existingPhone = await User.findOne({ phone: normalizedPhone });
+      if (existingPhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this phone number already exists'
+        });
+      }
     }
 
     // Hash password
@@ -189,7 +193,7 @@ const OTPVerification = async(req, res)=>{
     const user = new User({
       name,
       email: normalizedEmail,
-      phone: normalizedPhone,
+      phone: normalizedPhone || undefined,
       password: hashedPassword,
       role,
       profileImage: `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(name)}`,

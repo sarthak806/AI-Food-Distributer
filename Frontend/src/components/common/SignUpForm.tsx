@@ -127,13 +127,13 @@ export default function SignUpForm({
   const sendOtpHandler = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    if (!userData.name.trim() || !userData.email.trim() || !userData.phone.trim() || !userData.password) {
+    if (!userData.name.trim() || !userData.email.trim() || !userData.password) {
       enqueueSnackbar("Please fill in all required fields.", { variant: 'warning' });
       return;
     }
 
     const phoneDigits = userData.phone.replace(/\D/g, "");
-    if (!/^[6-9]\d{9}$/.test(phoneDigits) && !/^91[6-9]\d{9}$/.test(phoneDigits)) {
+    if (phoneDigits && !/^[6-9]\d{9}$/.test(phoneDigits) && !/^91[6-9]\d{9}$/.test(phoneDigits)) {
       enqueueSnackbar("Enter a valid Indian mobile number.", { variant: "warning" });
       return;
     }
@@ -489,6 +489,7 @@ export default function SignUpForm({
                     />
                   </div>
 
+                  {/*
                   <div>
                     <Label htmlFor="signup-phone" className="mb-1.5 block text-[11px] font-extrabold text-[#30433A]">
                       Mobile number<sup className="text-red-500">*</sup>
@@ -509,6 +510,7 @@ export default function SignUpForm({
                       />
                     </div>
                   </div>
+                  */}
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
