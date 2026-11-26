@@ -114,10 +114,13 @@ const sendOTPUsingEmail = async(req, res)=>{
       await OTP.deleteMany({ email: normalizedEmail });
       console.error("Email OTP delivery failed:", emailErr);
       const isMailConfigurationError = emailErr.code === 'EMAIL_NOT_CONFIGURED';
+      const isMailAuthorizationError = emailErr.code === 'EMAIL_UNAUTHORIZED';
       return res.status(isMailConfigurationError ? 503 : 502).json({
         success: false,
         message: isMailConfigurationError
           ? 'Email verification is temporarily unavailable. Please contact support.'
+          : isMailAuthorizationError
+            ? 'Email delivery is temporarily unavailable. Please contact support.'
           : 'Could not send the verification email. Please try again later.',
       });
     }

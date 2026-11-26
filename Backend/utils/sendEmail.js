@@ -1,8 +1,8 @@
 const axios = require('axios');
 
 const sendEmail = async (to, subject, text, html) => {
-    const apiKey = process.env.BREVO_API_KEY;
-    const from = process.env.BREVO_SENDER_EMAIL;
+    const apiKey = process.env.BREVO_API_KEY?.trim();
+    const from = process.env.BREVO_SENDER_EMAIL?.trim();
 
     if (!apiKey || !from) {
         const error = new Error('Email delivery is not configured.');
@@ -37,6 +37,11 @@ const sendEmail = async (to, subject, text, html) => {
             status: error.response?.status,
             details: error.response?.data?.message || error.response?.data?.code,
         });
+        if (error.response?.status === 401) {
+            const authError = new Error('The email provider rejected the API key.');
+            authError.code = 'EMAIL_UNAUTHORIZED';
+            throw authError;
+        }
         throw error;
     }
 };
