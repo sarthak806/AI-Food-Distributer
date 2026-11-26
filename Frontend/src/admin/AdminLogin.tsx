@@ -59,7 +59,7 @@ export default function AdminLogin() {
 
         {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-medium text-red-800">{error}</p>}
         <button type="submit" className="mt-6 min-h-11 w-full rounded-full bg-[#17633b] px-5 font-bold text-white transition hover:bg-[#22784a]">Sign in to admin</button>
-        <p className="mt-5 text-xs leading-5 text-[#536258]">Temporary demo authentication: credentials are defined in <code>src/admin/adminCredentials.ts</code>.</p>
+        <p className="mt-5 text-xs leading-5 text-[#536258]">Sign in with your admin code, admin email, and password.</p>
       </form>
     </main>
   );
